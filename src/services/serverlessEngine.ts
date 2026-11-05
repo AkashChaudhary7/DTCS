@@ -26,7 +26,12 @@ import {
   StudentSubmissionDetail,
 } from '../shared/types';
 
-const STORAGE_KEY = 'dsssb_tgt_cs_serverless_state_v1';
+const STORAGE_KEY = 'dsssb_tgt_cs_serverless_zero_v2';
+export const PORTAL_OPEN_TIMESTAMP_ISO = '2026-12-08T00:00:00+05:30';
+
+export function isAfterDec7SubmissionWindow(): boolean {
+  return Date.now() >= new Date(PORTAL_OPEN_TIMESTAMP_ISO).getTime();
+}
 
 function getCategoryMinQualifyingPct(cat: CategoryType): number {
   if (cat === 'General' || cat === 'EWS') return 40;
@@ -137,142 +142,8 @@ function buildInitialServerlessState(): ServerlessDatabaseState {
   const answerKeys: AnswerKeyVersion[] = [];
   const answerKeyItems: Record<number, AnswerKeyItem[]> = {};
   const submissions: StoredSubmission[] = [];
-  let nextKeyId = 1;
-  let nextSubmissionId = 1;
-
-  // Seed Shifts 1..4 with realistic response sheets so Leaderboard, Cutoff & Admin work out of the box
-  const seedRollsByShift: Record<number, string[]> = {
-    1: ['41261101', '41261102', '41261103', '41261104', '41261105', '41261106'],
-    2: ['41262101', '41262102', '41262103', '41262104', '41262105', '41262106'],
-    3: ['41263101', '41263102', '41263103', '41263104', '41263105'],
-    4: ['41264101', '41264102', '41264103', '41264104', '41264105'],
-  };
-
-  for (const [shiftStr, rolls] of Object.entries(seedRollsByShift)) {
-    const shiftNum = Number(shiftStr);
-    const shiftObj = shifts.find((s) => s.shift_number === shiftNum)!;
-
-    const firstHtml = generateOfficialDigialmHtmlFixture(shiftNum, rolls[0]);
-    const firstParsed = parseResponseSheetContent(firstHtml);
-    const validation = validateExtractedAnswerKey(
-      firstParsed.questions,
-      exam.total_questions,
-      exam.marks_per_correct,
-      exam.negative_marks
-    );
-
-    const keyId = nextKeyId++;
-    const keyVersion: AnswerKeyVersion = {
-      id: keyId,
-      shift_paper_id: shiftObj.id,
-      version_number: 1,
-      status: 'published',
-      source_submission_id: nextSubmissionId,
-      total_questions: 200,
-      discovered_questions: validation.items.length,
-      confirmation_count: rolls.length,
-      conflict_details: null,
-      notes: `Auto-discovered & verified from ${rolls.length} official Shift ${shiftNum} response sheets.`,
-      created_at: new Date().toISOString(),
-      verified_at: new Date().toISOString(),
-      published_at: new Date().toISOString(),
-      exam_date: shiftObj.exam_date,
-      shift_number: shiftObj.shift_number,
-      paper_code: shiftObj.paper_code,
-      paper_variant: shiftObj.paper_variant,
-    };
-    answerKeys.push(keyVersion);
-    answerKeyItems[keyId] = validation.items;
-    shiftObj.published_key_version = 1;
-    shiftObj.key_status = 'published';
-
-    for (const roll of rolls) {
-      const html = generateOfficialDigialmHtmlFixture(shiftNum, roll);
-      const parsed = parseResponseSheetContent(html);
-      const scoreRes = calculateCandidateScore(parsed.questions, validation.items, exam);
-
-      const sectionMap = new Map<
-        string,
-        { total: number; correct: number; incorrect: number; unattempted: number; score: number }
-      >();
-      for (const ev of scoreRes.evaluated_responses) {
-        const cur = sectionMap.get(ev.section_name) || {
-          total: 0,
-          correct: 0,
-          incorrect: 0,
-          unattempted: 0,
-          score: 0,
-        };
-        cur.total += 1;
-        if (ev.is_dropped) {
-          cur.correct += 1;
-        } else if (!ev.is_attempted) {
-          cur.unattempted += 1;
-        } else if (ev.is_correct) {
-          cur.correct += 1;
-        } else {
-          cur.incorrect += 1;
-        }
-        cur.score = Number((cur.score + ev.marks_awarded).toFixed(2));
-        sectionMap.set(ev.section_name, cur);
-      }
-
-      const sectionBreakdown = Array.from(sectionMap.entries()).map(([section_name, st]) => ({
-        section_name,
-        total: st.total,
-        correct: st.correct,
-        incorrect: st.incorrect,
-        unattempted: st.unattempted,
-        score: st.score,
-        accuracy:
-          st.correct + st.incorrect > 0
-            ? Number(((st.correct / (st.correct + st.incorrect)) * 100).toFixed(2))
-            : 0,
-      }));
-
-      submissions.push({
-        id: nextSubmissionId++,
-        shift_paper_id: shiftObj.id,
-        student_name: parsed.candidate_name_from_sheet || `Candidate ${roll}`,
-        roll_number: parsed.candidate_id || roll,
-        application_number: parsed.application_number || `4126${roll}`,
-        category: parsed.category_from_sheet || 'General',
-        sub_category: parsed.sub_category || 'None',
-        gender: parsed.gender || 'Male',
-        test_center_name: parsed.test_center_name || 'iON Digital Zone New Delhi',
-        test_center_code: parsed.test_center_code || 'DL0101',
-        subject_name: parsed.subject_name || 'TGT Computer Science (Post Code 41/26)',
-        exam_date: shiftObj.exam_date,
-        shift_number: shiftObj.shift_number,
-        shift_timing: shiftObj.shift_timing,
-        paper_code: shiftObj.paper_code,
-        paper_variant: shiftObj.paper_variant,
-        total_questions: scoreRes.total_questions,
-        correct: scoreRes.correct,
-        incorrect: scoreRes.incorrect,
-        unattempted: scoreRes.unattempted,
-        dropped: scoreRes.dropped,
-        score: scoreRes.score,
-        section_a_score: scoreRes.section_a_score,
-        section_b_score: scoreRes.section_b_score,
-        accuracy: scoreRes.accuracy,
-        answer_key_version_id: keyId,
-        answer_key_version_number: 1,
-        answer_key_status: 'published',
-        status: 'valid',
-        key_discovery_event: 'reused_published_key',
-        section_breakdown: sectionBreakdown,
-        raw_responses: parsed.questions.map((q) => ({
-          question_id: q.question_id,
-          section_name: q.section_name,
-          selected_option: q.selected_option,
-          correct_option: q.correct_option,
-          question_status: q.question_status,
-        })),
-        created_at: new Date(Date.now() - Math.floor(Math.random() * 7200_000)).toISOString(),
-      });
-    }
-  }
+  const nextKeyId = 1;
+  const nextSubmissionId = 1;
 
   return {
     exam,
@@ -283,8 +154,8 @@ function buildInitialServerlessState(): ServerlessDatabaseState {
     auditLogs: [
       {
         id: 1,
-        action: 'SYSTEM_INIT',
-        details: 'Initialized Serverless + Firestore Edge Database for Post Code 41/26.',
+        action: 'ZERO_RESET_DEC7_V1',
+        details: 'Reset all student submissions to zero. Portal locked until after 7 December 2026.',
         created_at: new Date().toISOString(),
       },
     ],
@@ -299,6 +170,16 @@ function getState(): ServerlessDatabaseState {
   if (memoryState) return memoryState;
   if (typeof window !== 'undefined') {
     try {
+      // Purge any legacy pre-reset cached student data from localStorage
+      const legacyKeys = [
+        'dsssb_tgt_cs_serverless_state_v1',
+        'dsssb_offline_stats_v1',
+        'dsssb_offline_top_lb_v1',
+        'dsssb_offline_lb_shift_0',
+      ];
+      for (const k of legacyKeys) {
+        window.localStorage.removeItem(k);
+      }
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
         memoryState = JSON.parse(raw) as ServerlessDatabaseState;
@@ -610,6 +491,15 @@ async function handleServerlessApiRequest(
 
   // 7. Extract Preview from URL or HTML Content
   if (pathname === '/api/response/extract-preview' && method === 'POST') {
+    if (!isAfterDec7SubmissionWindow()) {
+      return makeJsonResponse(
+        {
+          error:
+            'Rank Predictor submissions are locked until after 7 December 2026 (Official Draft Answer Key opens on 8 December 2026).',
+        },
+        403
+      );
+    }
     let rawHtml = body.uploaded_content || body.raw_content || '';
     if (!rawHtml && body.response_url) {
       const fetched = await fetchResponseSheetFromUrl(body.response_url);
@@ -656,6 +546,15 @@ async function handleServerlessApiRequest(
 
   // 8. Submit Response Sheet & Run Smart 18-Shift Answer Key Discovery
   if (pathname === '/api/response/submit' && method === 'POST') {
+    if (!isAfterDec7SubmissionWindow()) {
+      return makeJsonResponse(
+        {
+          error:
+            'Rank Predictor submissions are locked until after 7 December 2026 (Official Draft Answer Key opens on 8 December 2026).',
+        },
+        403
+      );
+    }
     let rawHtml = body.uploaded_content || body.raw_content || '';
     if (!rawHtml && body.response_url) {
       const fetched = await fetchResponseSheetFromUrl(body.response_url);

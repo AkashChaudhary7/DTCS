@@ -195,9 +195,19 @@ export function createApiApp(dbInstance?: AppDatabase) {
     res.json(validation);
   });
 
+  const PORTAL_OPEN_MS = new Date('2026-12-08T00:00:00+05:30').getTime();
+
   // Live Auto-Extractor Endpoint: Fetches & parses all candidate/exam details directly from the URL or file
   app.post('/api/response/extract-preview', rateLimitMiddleware(30, 60), async (req, res) => {
     try {
+      if (Date.now() < PORTAL_OPEN_MS) {
+        res.status(403).json({
+          error:
+            'Rank Predictor submissions are locked until after 7 December 2026 (Official Draft Answer Key opens on 8 December 2026).',
+        });
+        return;
+      }
+
       const { response_url, uploaded_content } = req.body || {};
       let rawHtml = '';
 
@@ -255,6 +265,14 @@ export function createApiApp(dbInstance?: AppDatabase) {
 
   app.post('/api/response/submit', rateLimitMiddleware(20, 60), async (req, res) => {
     try {
+      if (Date.now() < PORTAL_OPEN_MS) {
+        res.status(403).json({
+          error:
+            'Rank Predictor submissions are locked until after 7 December 2026 (Official Draft Answer Key opens on 8 December 2026).',
+        });
+        return;
+      }
+
       const exam = db.getCurrentExam();
       if (exam.maintenance_mode === 1) {
         res.status(503).json({

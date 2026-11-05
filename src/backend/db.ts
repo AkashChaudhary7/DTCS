@@ -142,42 +142,25 @@ export class AppDatabase {
           .run();
       }
 
-      // Backfill rich metadata for any existing rows that have empty roll_number
-      const missingMetaRows = this.db
-        .prepare(
-          `SELECT id, student_name, shift_paper_id FROM student_submissions WHERE roll_number = ''`
-        )
-        .all() as Array<{ id: number; student_name: string; shift_paper_id: number }>;
+      // One-time clean reset of all earlier student data to zero
+      const zeroResetApplied = this.db
+        .prepare("SELECT id FROM parser_logs WHERE message LIKE '%ZERO_RESET_DEC7_V1%' LIMIT 1")
+        .get() as { id: number } | undefined;
 
-      if (missingMetaRows.length > 0) {
-        const centers = [
-          { code: 'DL0101', name: 'iON Digital Zone iDZ 1 Mundka, New Delhi' },
-          { code: 'DL0102', name: 'iON Digital Zone iDZ 2 Sarita Vihar, New Delhi' },
-          { code: 'DL0103', name: 'iON Digital Zone iDZ Rohini Sector 22, Delhi' },
-          { code: 'DL0104', name: 'iON Digital Zone iDZ Pawan Ganga, Ghevra, Delhi' },
-          { code: 'DL0105', name: 'iON Digital Zone iDZ Dwarka Sector 9, New Delhi' },
-          { code: 'UP0901', name: 'iON Digital Zone iDZ Sector 62, Noida' },
-        ];
-        const subCats = ['None', 'None', 'None', 'PwBD-OH', 'Ex-SM'];
-        const upd = this.db.prepare(
-          `UPDATE student_submissions
-           SET roll_number = ?,
-               application_number = ?,
-               gender = ?,
-               sub_category = ?,
-               test_center_name = ?,
-               test_center_code = ?,
-               subject_from_sheet = 'TGT-CS-41/26 (TGT Computer Science)'
-           WHERE id = ?`
-        );
-        for (const row of missingMetaRows) {
-          const roll = `41261120${String(9000 + row.id)}`;
-          const appNo = `412600${String(84100 + row.id * 17)}`;
-          const gender = row.id % 2 === 0 ? 'Female' : 'Male';
-          const subCat = subCats[row.id % subCats.length];
-          const center = centers[row.id % centers.length];
-          upd.run(roll, appNo, gender, subCat, center.name, center.code, row.id);
-        }
+      if (!zeroResetApplied) {
+        this.db.exec(`
+          DELETE FROM student_responses;
+          DELETE FROM student_submissions;
+          DELETE FROM answer_key_items;
+          DELETE FROM answer_key_versions;
+          DELETE FROM parser_logs;
+        `);
+        this.db
+          .prepare(
+            `INSERT INTO parser_logs (shift_paper_id, source_type, status, message)
+             VALUES (NULL, 'system', 'success', 'ZERO_RESET_DEC7_V1: Purged all earlier student submissions and reset database to zero before 8 December 2026 window.')`
+          )
+          .run();
       }
       return;
     }
@@ -207,63 +190,18 @@ export class AppDatabase {
        VALUES (?, ?, ?, ?, 'TGT-CS-41/26', 'EN-HI-STD', 'active')`
     );
 
-    const shiftIds: Record<number, number> = {};
     for (let s = 1; s <= 18; s++) {
       const dateStr = getShiftDefaultDate(s);
       const timing = timings[(s - 1) % 3];
-      const res = insertShift.run(examId, dateStr, s, timing);
-      shiftIds[s] = Number(res.lastInsertRowid);
+      insertShift.run(examId, dateStr, s, timing);
     }
 
-    const seedCandidates: Array<{
-      name: string;
-      roll: string;
-      category: CategoryType;
-      shift: number;
-    }> = [
-      { name: 'Aarav Sharma', roll: '412611209001', category: 'General', shift: 1 },
-      { name: 'Priya Verma', roll: '412611209002', category: 'OBC', shift: 1 },
-      { name: 'Rohan Gupta', roll: '412611209003', category: 'EWS', shift: 1 },
-      { name: 'Neha Yadav', roll: '412611209004', category: 'OBC', shift: 1 },
-      { name: 'Vikramaditya Singh', roll: '412611209005', category: 'General', shift: 1 },
-      { name: 'Ananya Gautam', roll: '412611209006', category: 'SC', shift: 1 },
-      { name: 'Karan Meena', roll: '412611209007', category: 'ST', shift: 1 },
-      { name: 'Divya Joshi', roll: '412611209008', category: 'EWS', shift: 1 },
-      { name: 'Siddharth Nair', roll: '412611209101', category: 'General', shift: 2 },
-      { name: 'Pooja Choudhary', roll: '412611209102', category: 'OBC', shift: 2 },
-      { name: 'Harshvardhan Tiwari', roll: '412611209103', category: 'EWS', shift: 2 },
-      { name: 'Meenakshi Kumari', roll: '412611209104', category: 'SC', shift: 2 },
-      { name: 'Abhishek Patel', roll: '412611209105', category: 'OBC', shift: 2 },
-      { name: 'Ritika Bansal', roll: '412611209106', category: 'General', shift: 2 },
-      { name: 'Deepak Paswan', roll: '412611209201', category: 'SC', shift: 3 },
-      { name: 'Shruti Mishra', roll: '412611209202', category: 'General', shift: 3 },
-      { name: 'Mayank Saini', roll: '412611209203', category: 'OBC', shift: 3 },
-      { name: 'Tushar Rawat', roll: '412611209204', category: 'EWS', shift: 3 },
-      { name: 'Lokesh Oram', roll: '412611209205', category: 'ST', shift: 3 },
-      { name: 'Gaurav Deshmukh', roll: '412611209301', category: 'General', shift: 4 },
-      { name: 'Swati Kashyap', roll: '412611209302', category: 'OBC', shift: 4 },
-      { name: 'Prashant Bhardwaj', roll: '412611209303', category: 'EWS', shift: 4 },
-      { name: 'Komal Sonkar', roll: '412611209304', category: 'SC', shift: 4 },
-      { name: 'Nitin Dahiya', roll: '412611209401', category: 'General', shift: 5 },
-      { name: 'Sakshi Maurya', roll: '412611209402', category: 'OBC', shift: 5 },
-      { name: 'Rajat Chauhan', roll: '412611209501', category: 'General', shift: 6 },
-    ];
-
-    for (const cand of seedCandidates) {
-      const html = generateOfficialDigialmHtmlFixture(cand.shift, cand.roll, {
-        candidateName: cand.name,
-        category: cand.category,
-      });
-      const parsed = parseResponseSheetContent(html);
-      this.processCandidateSubmission({
-        shiftPaperId: shiftIds[cand.shift],
-        studentName: cand.name,
-        category: cand.category,
-        candidateIdFromSheet: cand.roll,
-        parsedSheet: parsed,
-        sourceType: 'fixture',
-      });
-    }
+    this.db
+      .prepare(
+        `INSERT INTO parser_logs (shift_paper_id, source_type, status, message)
+         VALUES (NULL, 'system', 'success', 'ZERO_RESET_DEC7_V1: Initialized clean zero-student database for Post Code 41/26 (opens after 7 December 2026).')`
+      )
+      .run();
   }
 
   public getCurrentExam(): ExamConfig {

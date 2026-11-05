@@ -16,7 +16,7 @@ import {
   ShiftPaper,
   StudentSubmissionDetail,
 } from '../shared/types';
-import { apiFetch } from '../services/serverlessEngine';
+import { apiFetch, isAfterDec7SubmissionWindow } from '../services/serverlessEngine';
 
 interface PredictorViewProps {
   exam: ExamConfig | null;
@@ -82,6 +82,7 @@ export const PredictorView: React.FC<PredictorViewProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [suggestUploadFallback, setSuggestUploadFallback] = useState(false);
   const [isLoadingSample, setIsLoadingSample] = useState(false);
+  const isPortalOpen = isAfterDec7SubmissionWindow();
 
   useEffect(() => {
     if (initialShiftPaperId && shifts.length > 0) {
@@ -242,7 +243,7 @@ export const PredictorView: React.FC<PredictorViewProps> = ({
   return (
     <div className="max-w-3xl mx-auto">
       <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xs space-y-6">
-        {/* Minimalist Header with Instant Sample Loader */}
+        {/* Minimalist Header */}
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800 pb-5">
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold text-blue-700 dark:text-blue-400">
@@ -255,42 +256,66 @@ export const PredictorView: React.FC<PredictorViewProps> = ({
             </h1>
           </div>
 
-          <div className="flex items-center gap-2">
-            <select
-              aria-label="Select Sample Shift"
-              value={sampleShiftNum}
-              onChange={(e) => {
-                const n = Number(e.target.value);
-                setSampleShiftNum(n);
-                handleLoadOfficialSample(n);
-              }}
-              className="px-2.5 py-2 text-xs font-mono tabular-nums bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200"
-            >
-              {Array.from({ length: 18 }, (_, i) => i + 1).map((n) => (
-                <option key={n} value={n}>
-                  Shift {n} Sample
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              disabled={isLoadingSample}
-              onClick={() => handleLoadOfficialSample(sampleShiftNum)}
-              className="px-3.5 py-2 text-xs font-semibold bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-xl transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{isLoadingSample ? 'Fetching...' : 'Load Sample URL'}</span>
-            </button>
-          </div>
+          {isPortalOpen ? (
+            <div className="flex items-center gap-2">
+              <select
+                aria-label="Select Sample Shift"
+                value={sampleShiftNum}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  setSampleShiftNum(n);
+                  handleLoadOfficialSample(n);
+                }}
+                className="px-2.5 py-2 text-xs font-mono tabular-nums bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200"
+              >
+                {Array.from({ length: 18 }, (_, i) => i + 1).map((n) => (
+                  <option key={n} value={n}>
+                    Shift {n} Sample
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                disabled={isLoadingSample}
+                onClick={() => handleLoadOfficialSample(sampleShiftNum)}
+                className="px-3.5 py-2 text-xs font-semibold bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-xl transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>{isLoadingSample ? 'Fetching...' : 'Load Sample URL'}</span>
+              </button>
+            </div>
+          ) : (
+            <div className="px-3.5 py-2 text-xs font-semibold bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-xl flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5 shrink-0" />
+              <span>Opens After 7 December 2026</span>
+            </div>
+          )}
         </div>
+
+        {/* Date Gate Lock Banner when current date is on or before 7 December 2026 */}
+        {!isPortalOpen && (
+          <div className="p-5 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/80 rounded-xl space-y-2">
+            <div className="flex items-center gap-2 text-sm font-bold text-amber-900 dark:text-amber-200">
+              <Lock className="w-4 h-4 shrink-0 text-amber-700 dark:text-amber-400" />
+              <span>Submission Window Locked Until After 7 December 2026</span>
+            </div>
+            <p className="text-xs text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
+              All earlier test data has been reset to zero. Candidate response-sheet evaluation and
+              live rank prediction for <strong>DSSSB TGT Computer Science (Post Code 41/26)</strong> will
+              automatically unlock after <strong>7 December 2026</strong> upon the release of the
+              Official Draft Answer Key on <strong>8 December 2026</strong>.
+            </p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Input Mode Toggle */}
-          <div className="space-y-3">
+          <div className={`space-y-3 ${!isPortalOpen ? 'opacity-60 pointer-events-none select-none' : ''}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
                 <button
                   type="button"
+                  disabled={!isPortalOpen}
                   onClick={() => setInputMode('url')}
                   className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer ${
                     inputMode === 'url'
@@ -303,6 +328,7 @@ export const PredictorView: React.FC<PredictorViewProps> = ({
                 </button>
                 <button
                   type="button"
+                  disabled={!isPortalOpen}
                   onClick={() => setInputMode('upload')}
                   className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer ${
                     inputMode === 'upload'
@@ -327,7 +353,12 @@ export const PredictorView: React.FC<PredictorViewProps> = ({
                   id="response-sheet-url"
                   type="url"
                   required
-                  placeholder="Paste https://cdn.digialm.com/... official response-sheet URL"
+                  disabled={!isPortalOpen}
+                  placeholder={
+                    isPortalOpen
+                      ? 'Paste https://cdn.digialm.com/... official response-sheet URL'
+                      : 'Locked — Submissions open after 7 December 2026'
+                  }
                   value={responseUrl}
                   onChange={(e) => {
                     const val = e.target.value;
@@ -338,13 +369,13 @@ export const PredictorView: React.FC<PredictorViewProps> = ({
                       setExtractedPreview(null);
                     }
                   }}
-                  className="flex-1 px-4 py-3 text-sm font-mono bg-slate-50/70 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  className="flex-1 px-4 py-3 text-sm font-mono bg-slate-50/70 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:cursor-not-allowed"
                 />
                 <button
                   type="button"
-                  disabled={isExtracting || !responseUrl.trim()}
+                  disabled={!isPortalOpen || isExtracting || !responseUrl.trim()}
                   onClick={() => triggerAutoExtract({ url: responseUrl })}
-                  className="px-4 py-3 text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white rounded-xl whitespace-nowrap shrink-0 cursor-pointer"
+                  className="px-4 py-3 text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white rounded-xl whitespace-nowrap shrink-0 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {isExtracting ? 'Fetching...' : 'Fetch Details'}
                 </button>
@@ -362,6 +393,7 @@ export const PredictorView: React.FC<PredictorViewProps> = ({
                     <span>Browse</span>
                     <input
                       type="file"
+                      disabled={!isPortalOpen}
                       accept=".html,.htm,.txt,.json"
                       onChange={handleFileChange}
                       className="hidden"
@@ -371,6 +403,7 @@ export const PredictorView: React.FC<PredictorViewProps> = ({
 
                 <textarea
                   rows={3}
+                  disabled={!isPortalOpen}
                   placeholder="Or paste response sheet HTML source directly..."
                   value={uploadedContent}
                   onChange={(e) => {
@@ -379,7 +412,7 @@ export const PredictorView: React.FC<PredictorViewProps> = ({
                       triggerAutoExtract({ content: e.target.value });
                     }
                   }}
-                  className="w-full px-3.5 py-2 text-xs font-mono bg-slate-50/70 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  className="w-full px-3.5 py-2 text-xs font-mono bg-slate-50/70 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:cursor-not-allowed"
                 />
               </div>
             )}
@@ -514,10 +547,14 @@ export const PredictorView: React.FC<PredictorViewProps> = ({
 
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full sm:w-auto px-7 py-3 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white font-semibold text-sm rounded-xl transition-colors cursor-pointer"
+              disabled={!isPortalOpen || isSubmitting}
+              className="w-full sm:w-auto px-7 py-3 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm rounded-xl transition-colors cursor-pointer"
             >
-              {isSubmitting ? 'Evaluating...' : 'Calculate Score & Predict Rank'}
+              {!isPortalOpen
+                ? 'Locked Until After 7 Dec 2026'
+                : isSubmitting
+                ? 'Evaluating...'
+                : 'Calculate Score & Predict Rank'}
             </button>
           </div>
         </form>

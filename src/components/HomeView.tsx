@@ -228,32 +228,44 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </button>
           </div>
 
-          <div className="divide-y divide-slate-200/70 dark:divide-slate-800">
-            {topLeaderboard.slice(0, 5).map((entry) => (
-              <div
-                key={entry.id}
-                onClick={() => onNavigate('predictor', { resultId: entry.id })}
-                className="py-3 flex items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 px-2 -mx-2 rounded-lg transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <span className="w-7 text-sm font-mono tabular-nums font-bold text-slate-900 dark:text-white shrink-0">
-                    #{entry.dense_rank}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                      {entry.student_name}
+          {topLeaderboard.length === 0 ? (
+            <div className="py-10 px-4 text-center space-y-1.5 bg-slate-50/70 dark:bg-slate-950 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+              <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                0 Candidate Submissions Recorded
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                All earlier data has been reset to zero. Response-sheet evaluation opens after{' '}
+                <strong className="text-slate-700 dark:text-slate-300">7 December 2026</strong>.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-200/70 dark:divide-slate-800">
+              {topLeaderboard.slice(0, 5).map((entry) => (
+                <div
+                  key={entry.id}
+                  onClick={() => onNavigate('predictor', { resultId: entry.id })}
+                  className="py-3 flex items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 px-2 -mx-2 rounded-lg transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <span className="w-7 text-sm font-mono tabular-nums font-bold text-slate-900 dark:text-white shrink-0">
+                      #{entry.dense_rank}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                        {entry.student_name}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <div className="text-base font-bold font-mono tabular-nums text-blue-700 dark:text-blue-400">
+                      {Number(entry.score).toFixed(2)}
                     </div>
                   </div>
                 </div>
-
-                <div className="text-right shrink-0">
-                  <div className="text-base font-bold font-mono tabular-nums text-blue-700 dark:text-blue-400">
-                    {Number(entry.score).toFixed(2)}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Interactive 18-Shift Quick Discovery Grid */}
