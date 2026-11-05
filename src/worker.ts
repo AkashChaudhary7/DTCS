@@ -98,17 +98,28 @@ export default {
           username?: string;
           password?: string;
         };
-        const expectedPassword = env.ADMIN_SESSION_SECRET || 'Dsssb123!321';
+        const rawPass = String(body.password || '').trim();
+        const digestBuffer = await crypto.subtle.digest(
+          'SHA-256',
+          new TextEncoder().encode(`dsssb_admin_v1:${rawPass}`)
+        );
+        const digestHex = Array.from(new Uint8Array(digestBuffer))
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('');
+        const expectedDigest =
+          '8d291d589ed044ed2b52e5fad13e1c59e6d3dcc145dc4d79793b09297ae642e1';
+
         if (
           (body.username || 'admin') === 'admin' &&
-          (body.password === 'Dsssb123!321' || body.password === expectedPassword)
+          (digestHex === expectedDigest ||
+            (env.ADMIN_SESSION_SECRET && rawPass === env.ADMIN_SESSION_SECRET))
         ) {
           return jsonResponse({
             token: 'worker-admin-session-dsssb-41-26',
             username: 'admin',
           });
         }
-        return jsonResponse({ error: 'Invalid admin credentials.' }, 401);
+        return jsonResponse({ error: 'Invalid administrator credentials.' }, 401);
       }
 
       // Expose core parser, validator, and scoring engine verification healthcheck

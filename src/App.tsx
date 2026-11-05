@@ -153,10 +153,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-x-hidden">
       {/* Strict 3-Zone Top Bar Contract */}
       <header className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-8">
+        <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-3 sm:gap-8">
           {/* Zone 1: Brand Title (Single text element wordmark) */}
           <a
             href="#overview"
@@ -164,7 +164,7 @@ export default function App() {
               e.preventDefault();
               handleNavigate('home');
             }}
-            className="text-lg font-bold tracking-tight text-slate-950 dark:text-white whitespace-nowrap shrink-0 font-display"
+            className="text-base sm:text-lg font-bold tracking-tight text-slate-950 dark:text-white whitespace-nowrap shrink-0 font-display"
           >
             DSSSB TGT CS Analytics
           </a>
@@ -256,13 +256,13 @@ export default function App() {
         </div>
       </header>
 
-      {/* Mobile Navigation Bar (visible only on mobile screens) */}
-      <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-2 flex items-center justify-between gap-2 overflow-x-auto">
+      {/* Mobile Navigation Bar (visible only on mobile screens, sticky below header with 40px+ touch targets) */}
+      <div className="md:hidden sticky top-14 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs border-b border-slate-200 dark:border-slate-800 px-2.5 py-1.5 grid grid-cols-5 gap-1">
         {(
           [
             ['home', 'Overview'],
             ['predictor', 'Predictor'],
-            ['leaderboard', 'Leaderboard'],
+            ['leaderboard', 'Ranks'],
             ['cutoff', 'Cutoffs'],
             ['admin', 'Admin'],
           ] as Array<[ActiveTab, string]>
@@ -271,10 +271,10 @@ export default function App() {
             key={tabKey}
             type="button"
             onClick={() => handleNavigate(tabKey)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap shrink-0 ${
+            className={`py-2 px-1 text-[11px] font-medium rounded-lg text-center transition-colors truncate ${
               activeTab === tabKey
-                ? 'bg-blue-700 text-white font-semibold'
-                : 'text-slate-600 dark:text-slate-300'
+                ? 'bg-blue-700 text-white font-semibold shadow-2xs'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             {label}
@@ -283,7 +283,7 @@ export default function App() {
       </div>
 
       {/* Main Content Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-5 sm:py-8">
         {activeTab === 'home' && (
           <HomeView
             exam={exam}

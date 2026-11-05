@@ -409,11 +409,23 @@ async function handleServerlessApiRequest(
     }
   }
 
-  // 1. Admin Login (supports username 'admin' and password 'Dsssb123!321')
+  // 1. Admin Login (verifies salted SHA-256 digest so plaintext password never exists in code)
   if (pathname === '/api/admin/login' && method === 'POST') {
-    const username = String(body.username || 'admin').trim();
+    const username = String(body.username || '').trim();
     const password = String(body.password || '').trim();
-    if (username === 'admin' && password === 'Dsssb123!321') {
+    const expectedDigest =
+      '8d291d589ed044ed2b52e5fad13e1c59e6d3dcc145dc4d79793b09297ae642e1';
+    let digestHex = '';
+    if (typeof crypto !== 'undefined' && crypto.subtle) {
+      const buf = await crypto.subtle.digest(
+        'SHA-256',
+        new TextEncoder().encode(`dsssb_admin_v1:${password}`)
+      );
+      digestHex = Array.from(new Uint8Array(buf))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+    }
+    if (username === 'admin' && digestHex === expectedDigest) {
       return makeJsonResponse({
         token: 'serverless-admin-token-dsssb-41-26',
         username: 'admin',
@@ -421,7 +433,7 @@ async function handleServerlessApiRequest(
       });
     }
     return makeJsonResponse(
-      { error: 'Invalid admin credentials. Use username "admin" and password "Dsssb123!321".' },
+      { error: 'Invalid administrator username or password.' },
       401
     );
   }
@@ -1333,7 +1345,7 @@ async function handleServerlessApiRequest(
  * - When running on AI Studio / Node server (`server.ts`), requests hit the real Express API first.
  * - When deployed to a static domain (Firebase Hosting, Cloudflare Pages, Netlify, Vercel static)
  *   where `/api/*` either fails or returns an HTML SPA fallback (`<!doctype html>`), it seamlessly
- *   switches to the in-browser Serverless + Firestore Edge Engine so Admin Login (`Dsssb123!321`),
+ *   switches to the in-browser Serverless + Firestore Edge Engine so Admin Login,
  *   Response Sheet Parsing, Answer Key Discovery, and Leaderboard work 100% with zero network errors.
  */
 export async function apiFetch(

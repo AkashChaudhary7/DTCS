@@ -100,9 +100,13 @@ export class AppDatabase {
 
   public seedInitialDataIfEmpty(): void {
     const adminUser = process.env.ADMIN_DEFAULT_USERNAME || 'admin';
-    const adminPass = process.env.ADMIN_DEFAULT_PASSWORD || 'Dsssb123!321';
+    // Pre-computed PBKDF2-SHA256 digest so plaintext password never appears in source code
+    const defaultAdminPasswordHash =
+      'dac7f651eca9fe50066763d0b7eeac6d91fc4e617d4d57d235d4b4d62122e6e1';
+    const targetHash = process.env.ADMIN_DEFAULT_PASSWORD
+      ? hashPassword(process.env.ADMIN_DEFAULT_PASSWORD)
+      : defaultAdminPasswordHash;
 
-    // Always ensure the admin account exists and has the configured password (Dsssb123!321)
     const existingAdmin = this.db
       .prepare('SELECT id FROM admin_users WHERE username = ?')
       .get(adminUser) as { id: number } | undefined;
@@ -110,11 +114,11 @@ export class AppDatabase {
     if (existingAdmin) {
       this.db
         .prepare('UPDATE admin_users SET password_hash = ? WHERE id = ?')
-        .run(hashPassword(adminPass), existingAdmin.id);
+        .run(targetHash, existingAdmin.id);
     } else {
       this.db
         .prepare('INSERT INTO admin_users (username, password_hash) VALUES (?, ?)')
-        .run(adminUser, hashPassword(adminPass));
+        .run(adminUser, targetHash);
     }
 
     const existingExam = this.db

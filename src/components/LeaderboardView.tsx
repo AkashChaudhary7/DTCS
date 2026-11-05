@@ -186,7 +186,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Minimalist Header & Real-Time Search Bar */}
-      <section className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-6 space-y-4 shadow-2xs">
+      <section className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-6 space-y-4 shadow-2xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold text-blue-700 dark:text-blue-400">
@@ -198,14 +198,14 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                   : `${total} Candidates`}
               </span>
             </div>
-            <h1 className="text-2xl font-bold text-slate-950 dark:text-white mt-0.5">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-950 dark:text-white mt-0.5">
               Live Leaderboard
             </h1>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
             {/* High-Efficiency Real-Time Student Name Search Bar */}
-            <div className="relative flex-1 sm:w-64">
+            <div className="relative w-full sm:w-64">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 ref={searchInputRef}
@@ -217,7 +217,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                   setSearchQuery(e.target.value);
                   setPage(1);
                 }}
-                className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full pl-9 pr-8 py-2.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
               {searchQuery && (
                 <button
@@ -235,31 +235,33 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
               )}
             </div>
 
-            <select
-              aria-label="Filter by Examination Shift"
-              value={selectedShiftNumber}
-              onChange={(e) => {
-                setSelectedShiftNumber(Number(e.target.value));
-                setPage(1);
-              }}
-              className="px-3 py-2 text-xs font-mono tabular-nums bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
-            >
-              <option value={0}>All Shifts</option>
-              {shifts.map((s) => (
-                <option key={s.id} value={s.shift_number}>
-                  Shift {String(s.shift_number).padStart(2, '0')}
-                </option>
-              ))}
-            </select>
+            <div className="grid grid-cols-2 sm:flex items-center gap-2">
+              <select
+                aria-label="Filter by Examination Shift"
+                value={selectedShiftNumber}
+                onChange={(e) => {
+                  setSelectedShiftNumber(Number(e.target.value));
+                  setPage(1);
+                }}
+                className="w-full sm:w-auto px-3 py-2.5 text-xs font-mono tabular-nums bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+              >
+                <option value={0}>All Shifts</option>
+                {shifts.map((s) => (
+                  <option key={s.id} value={s.shift_number}>
+                    Shift {String(s.shift_number).padStart(2, '0')}
+                  </option>
+                ))}
+              </select>
 
-            <button
-              type="button"
-              onClick={fetchLeaderboard}
-              className="px-3 py-2 text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl flex items-center gap-1.5 cursor-pointer"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-              <span>Refresh</span>
-            </button>
+              <button
+                type="button"
+                onClick={fetchLeaderboard}
+                className="w-full sm:w-auto justify-center px-3 py-2.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl flex items-center gap-1.5 cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
+              </button>
+            </div>
           </div>
         </div>
       </section>

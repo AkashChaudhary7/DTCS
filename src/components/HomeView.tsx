@@ -57,9 +57,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
   return (
     <div className="space-y-8">
       {/* Minimalist Premium Hero */}
-      <section className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-6 lg:p-10 shadow-2xs">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          <div className="lg:col-span-7 space-y-5">
+      <section className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-6 lg:p-10 shadow-2xs">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center">
+          <div className="lg:col-span-7 space-y-4 sm:space-y-5">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold tracking-wide text-blue-700 dark:text-blue-400">
               <span>Post Code 41/26</span>
               <span aria-hidden="true">·</span>
@@ -69,7 +69,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </div>
 
             <h1
-              className="text-3xl sm:text-4xl lg:text-[42px] font-bold tracking-tight text-slate-950 dark:text-white leading-[1.12]"
+              className="text-2xl sm:text-4xl lg:text-[42px] font-bold tracking-tight text-slate-950 dark:text-white leading-[1.15]"
               style={{ textWrap: 'balance' } as React.CSSProperties}
             >
               Instant Marks Calculator & Live Rank Predictor
@@ -80,31 +80,33 @@ export const HomeView: React.FC<HomeViewProps> = ({
               and compare your live dense rank across all 18 shifts.
             </p>
 
-            <div className="flex flex-wrap items-center gap-3 pt-1">
+            <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2.5 sm:gap-3 pt-1">
               <button
                 onClick={() => onNavigate('predictor')}
-                className="px-6 py-3 bg-blue-700 hover:bg-blue-800 text-white font-semibold text-sm rounded-xl transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer"
+                className="w-full sm:w-auto justify-center px-6 py-3 bg-blue-700 hover:bg-blue-800 text-white font-semibold text-sm rounded-xl transition-colors flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer"
               >
                 <span>Check My Score & Rank</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
-              <button
-                onClick={() => onNavigate('leaderboard')}
-                className="px-5 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 font-semibold text-sm rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-              >
-                Live Leaderboard
-              </button>
-              <button
-                onClick={() => onNavigate('cutoff')}
-                className="px-4 py-3 text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white font-medium text-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-              >
-                Cutoff Predictor
-              </button>
+              <div className="grid grid-cols-2 sm:flex items-center gap-2.5">
+                <button
+                  onClick={() => onNavigate('leaderboard')}
+                  className="w-full sm:w-auto justify-center px-5 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 font-semibold text-sm rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                >
+                  Live Leaderboard
+                </button>
+                <button
+                  onClick={() => onNavigate('cutoff')}
+                  className="w-full sm:w-auto justify-center px-4 py-3 bg-slate-50 sm:bg-transparent border sm:border-0 border-slate-200 dark:border-slate-800 rounded-xl text-slate-700 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white font-medium text-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                >
+                  Cutoff Predictor
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Right Panel: Official Draft Key Countdown (8 December 2026) */}
-          <div className="lg:col-span-5 bg-slate-50/80 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 rounded-xl p-6 space-y-5">
+          <div className="lg:col-span-5 bg-slate-50/80 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 rounded-xl p-4 sm:p-6 space-y-4 sm:space-y-5">
             <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800 pb-3.5">
               <div>
                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
@@ -119,7 +121,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </span>
             </div>
 
-            <div className="grid grid-cols-4 gap-2.5 text-center">
+            <div className="grid grid-cols-4 gap-2 sm:gap-2.5 text-center">
               {[
                 { label: 'Days', value: countdown.days },
                 { label: 'Hours', value: countdown.hours },
@@ -128,10 +130,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
               ].map((item) => (
                 <div
                   key={item.label}
-                  className="py-3 px-2 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-lg"
+                  className="py-2.5 sm:py-3 px-1.5 sm:px-2 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-lg"
                 >
                   <div
-                    className={`text-2xl font-bold font-mono tabular-nums ${
+                    className={`text-xl sm:text-2xl font-bold font-mono tabular-nums ${
                       item.accent
                         ? 'text-blue-700 dark:text-blue-400'
                         : 'text-slate-950 dark:text-white'
@@ -164,7 +166,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
       </section>
 
       {/* Minimalist 4-Metric Telemetry Strip */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-xl p-5 flex items-center justify-between">
           <div>
             <div className="text-xs text-slate-500 dark:text-slate-400">Candidates</div>
