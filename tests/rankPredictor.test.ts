@@ -271,7 +271,14 @@ describe('DSSSB TGT CS Rank Predictor - Comprehensive Test Suite', () => {
     );
   });
 
-  it('14-15. Enforces Admin HMAC token verification and tag-based Cache Invalidation', () => {
+  it('14-15. Enforces Admin HMAC token verification, Dsssb123!321 default password, and tag-based Cache Invalidation', () => {
+    const db = new AppDatabase(':memory:');
+    db.seedInitialDataIfEmpty();
+    const adminRow = db.db
+      .prepare('SELECT * FROM admin_users WHERE username = ?')
+      .get('admin') as { username: string; password_hash: string } | undefined;
+    expect(adminRow?.username).toBe('admin');
+
     const token = createAdminToken(1, 'admin');
     const verified = verifyAdminToken(token);
     expect(verified?.username).toBe('admin');

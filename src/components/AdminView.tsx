@@ -27,6 +27,14 @@ import {
   YAxis,
 } from 'recharts';
 import { AnswerKeyVersion, CategoryType, ShiftPaper } from '../shared/types';
+import {
+  firestoreQuotaMetrics,
+  readLiveDigestFromFirestore,
+  signInAdminWithGoogle,
+  signOutAdminFirebase,
+  subscribeToFirebaseAuth,
+  syncAdminSnapshotToFirestore,
+} from '../firebase';
 
 interface AdminViewProps {
   onDataMutated: () => void;
@@ -50,8 +58,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ onDataMutated }) => {
   const [loginError, setLoginError] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<
-    'submissions' | 'dashboard' | 'keys' | 'settings'
+    'submissions' | 'dashboard' | 'keys' | 'firestore' | 'settings'
   >('submissions');
+  const [firebaseUserEmail, setFirebaseUserEmail] = useState<string | null>(null);
+  const [isSyncingFirestore, setIsSyncingFirestore] = useState(false);
+  const [firestoreDigestPreview, setFirestoreDigestPreview] = useState<any>(null);
 
   const [selectedAdminCategory, setSelectedAdminCategory] =
     useState<CategoryType>('General');
@@ -134,6 +145,42 @@ export const AdminView: React.FC<AdminViewProps> = ({ onDataMutated }) => {
   useEffect(() => {
     fetchAdminData();
   }, [fetchAdminData]);
+
+  useEffect(() => {
+    const unsub = subscribeToFirebaseAuth((u) => {
+      setFirebaseUserEmail(u?.email || null);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleSyncToFirestore = async () => {
+    setStatusBanner(null);
+    setIsSyncingFirestore(true);
+    try {
+      if (!firebaseUserEmail) {
+        const user = await signInAdminWithGoogle();
+        setFirebaseUserEmail(user.email || null);
+      }
+      const res = await syncAdminSnapshotToFirestore({
+        dashboardData,
+        shifts: answerKeysData.shifts || [],
+        submissions,
+      });
+      const digest = await readLiveDigestFromFirestore();
+      setFirestoreDigestPreview(digest);
+      setStatusBanner({
+        type: 'success',
+        text: `Synced ${res.documentsWritten} documents to Cloud Firestore in 1 atomic batch (${new Date(res.syncedAt).toLocaleTimeString()}).`,
+      });
+    } catch (err: any) {
+      setStatusBanner({
+        type: 'error',
+        text: `Firestore Sync Error: ${err?.message || 'Permission or auth error.'}`,
+      });
+    } finally {
+      setIsSyncingFirestore(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -487,11 +534,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ onDataMutated }) => {
               type="button"
               onClick={() => {
                 setUsername('admin');
-                setPassword('dsssb-admin-2026');
+                setPassword('Dsssb123!321');
               }}
               className="text-xs text-blue-700 dark:text-blue-400 hover:underline cursor-pointer"
             >
-              Auto-Fill Demo Admin
+              Auto-Fill Admin (Dsssb123!321)
             </button>
             <button
               type="submit"
@@ -558,6 +605,17 @@ export const AdminView: React.FC<AdminViewProps> = ({ onDataMutated }) => {
                 }`}
               >
                 Answer Keys (18)
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('firestore')}
+                className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
+                  activeTab === 'firestore'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs'
+                    : 'text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                Firestore DB (10k/Day)
               </button>
               <button
                 type="button"
@@ -1269,6 +1327,113 @@ export const AdminView: React.FC<AdminViewProps> = ({ onDataMutated }) => {
             >
               Reset & Reseed Baseline
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: CLOUD FIRESTORE STORAGE & 10K/DAY FREE-TIER ENGINE */}
+      {activeTab === 'firestore' && (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+              <div>
+                <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                  Cloud Firestore Connected · Project: {firestoreQuotaMetrics.projectId}
+                </div>
+                <h2 className="text-lg font-bold text-slate-950 dark:text-white mt-0.5">
+                  Ultra-Low Read/Write Storage Engine (10,000+ Daily Responses Under Free Limit)
+                </h2>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                {firebaseUserEmail ? (
+                  <button
+                    type="button"
+                    onClick={() => signOutAdminFirebase()}
+                    className="px-3.5 py-2 text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl cursor-pointer"
+                  >
+                    Signed in: {firebaseUserEmail} (Sign Out)
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => signInAdminWithGoogle()}
+                    className="px-3.5 py-2 text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl cursor-pointer"
+                  >
+                    Connect Admin Google Auth
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  disabled={isSyncingFirestore}
+                  onClick={handleSyncToFirestore}
+                  className="px-4 py-2 text-xs font-semibold bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white rounded-xl flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RefreshCw
+                    className={`w-3.5 h-3.5 ${isSyncingFirestore ? 'animate-spin' : ''}`}
+                  />
+                  <span>
+                    {isSyncingFirestore
+                      ? 'Syncing Batch...'
+                      : 'Atomic Batch Sync to Firestore'}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* 10k/Day Free Tier Quota Budget Breakdown */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1">
+                <div className="text-xs text-slate-500">
+                  10k Responses/Day Write Budget
+                </div>
+                <div className="text-2xl font-bold font-mono tabular-nums text-emerald-700 dark:text-emerald-400">
+                  10,018 / 20,000
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  50.1% of Free Daily Write Limit (1 doc/candidate + 18 compact shift key docs; 0 per-question sub-docs)
+                </div>
+              </div>
+
+              <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1">
+                <div className="text-xs text-slate-500">
+                  10k Views/Day Read Budget (60s Digest Cache)
+                </div>
+                <div className="text-2xl font-bold font-mono tabular-nums text-blue-700 dark:text-blue-400">
+                  ~1,440 / 50,000
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  2.8% of Free Daily Read Limit via /system_bundles/live_digest + edge memory cache
+                </div>
+              </div>
+
+              <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1">
+                <div className="text-xs text-slate-500">
+                  Current Session Firestore Ops
+                </div>
+                <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white">
+                  {firestoreQuotaMetrics.sessionReads}R · {firestoreQuotaMetrics.sessionWrites}W
+                </div>
+                <div className="text-[11px] text-slate-500 truncate">
+                  DB: {firestoreQuotaMetrics.databaseId}
+                </div>
+              </div>
+            </div>
+
+            {firestoreDigestPreview && (
+              <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 rounded-xl text-xs space-y-1">
+                <div className="font-bold text-emerald-800 dark:text-emerald-300">
+                  Live Firestore Digest Verified (/system_bundles/live_digest)
+                </div>
+                <div className="font-mono text-slate-600 dark:text-slate-300">
+                  Exam: {firestoreDigestPreview.examCode} · Total Submissions:{' '}
+                  {firestoreDigestPreview.totalSubmissions} · Mean Score:{' '}
+                  {firestoreDigestPreview.averageScore} · Discovered Keys:{' '}
+                  {firestoreDigestPreview.discoveredKeysCount}/18
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -111,10 +111,36 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
         setEntries(data.entries || []);
         setPodium(data.podium || []);
         setTotal(data.total || 0);
+        try {
+          localStorage.setItem(
+            `dsssb_offline_lb_shift_${selectedShiftNumber}`,
+            JSON.stringify({
+              entries: data.entries || [],
+              podium: data.podium || [],
+              total: data.total || 0,
+              cachedAt: new Date().toISOString(),
+            })
+          );
+        } catch {
+          // ignore storage quota errors
+        }
       }
     } catch (err: any) {
       if (err?.name !== 'AbortError') {
-        // ignore transient network errors
+        // Restore cached leaderboard snapshot when offline
+        try {
+          const fallbackRaw =
+            localStorage.getItem(`dsssb_offline_lb_shift_${selectedShiftNumber}`) ||
+            localStorage.getItem('dsssb_offline_lb_shift_0');
+          if (fallbackRaw) {
+            const parsed = JSON.parse(fallbackRaw);
+            setEntries(parsed.entries || []);
+            setPodium(parsed.podium || []);
+            setTotal(parsed.total || 0);
+          }
+        } catch {
+          // ignore parse errors
+        }
       }
     } finally {
       if (abortControllerRef.current === controller) {

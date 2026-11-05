@@ -99,6 +99,24 @@ export class AppDatabase {
   }
 
   public seedInitialDataIfEmpty(): void {
+    const adminUser = process.env.ADMIN_DEFAULT_USERNAME || 'admin';
+    const adminPass = process.env.ADMIN_DEFAULT_PASSWORD || 'Dsssb123!321';
+
+    // Always ensure the admin account exists and has the configured password (Dsssb123!321)
+    const existingAdmin = this.db
+      .prepare('SELECT id FROM admin_users WHERE username = ?')
+      .get(adminUser) as { id: number } | undefined;
+
+    if (existingAdmin) {
+      this.db
+        .prepare('UPDATE admin_users SET password_hash = ? WHERE id = ?')
+        .run(hashPassword(adminPass), existingAdmin.id);
+    } else {
+      this.db
+        .prepare('INSERT INTO admin_users (username, password_hash) VALUES (?, ?)')
+        .run(adminUser, hashPassword(adminPass));
+    }
+
     const existingExam = this.db
       .prepare('SELECT id, name, exam_countdown_target FROM exams LIMIT 1')
       .get() as { id: number; name: string; exam_countdown_target: string } | undefined;
@@ -163,13 +181,6 @@ export class AppDatabase {
       }
       return;
     }
-
-    const adminUser = process.env.ADMIN_DEFAULT_USERNAME || 'admin';
-    const adminPass = process.env.ADMIN_DEFAULT_PASSWORD || 'dsssb-admin-2026';
-
-    this.db
-      .prepare('INSERT OR IGNORE INTO admin_users (username, password_hash) VALUES (?, ?)')
-      .run(adminUser, hashPassword(adminPass));
 
     const examResult = this.db
       .prepare(

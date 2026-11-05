@@ -1,0 +1,348 @@
+{
+  "entities": {
+    "SystemBundle": {
+      "title": "SystemBundle",
+      "description": "Single-document aggregated digest of live leaderboard top entries, shift summaries, and cutoff estimates to serve 10k+ daily users within Firestore free tier.",
+      "type": "object",
+      "properties": {
+        "bundleId": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Unique identifier for the digest bundle (e.g. live_digest)."
+        },
+        "examCode": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Post code identifier (DSSSB-TGT-CS-41/26)."
+        },
+        "totalSubmissions": {
+          "type": "number",
+          "description": "Total valid candidate submissions."
+        },
+        "averageScore": {
+          "type": "number",
+          "description": "Mean raw score across cohort."
+        },
+        "highestScore": {
+          "type": "number",
+          "description": "Top raw score across cohort."
+        },
+        "discoveredKeysCount": {
+          "type": "number",
+          "description": "Count of shifts with discovered answer keys."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server last update timestamp."
+        }
+      },
+      "required": [
+        "bundleId",
+        "examCode",
+        "totalSubmissions",
+        "averageScore",
+        "highestScore",
+        "discoveredKeysCount",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ShiftKey": {
+      "title": "ShiftKey",
+      "description": "Compact single-document shift answer key storing all 200 question answers in one document (1 write per shift instead of 200).",
+      "type": "object",
+      "properties": {
+        "shiftKeyId": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Unique key identifier (shift_1 to shift_18)."
+        },
+        "shiftNumber": {
+          "type": "number",
+          "description": "Shift number between 1 and 18."
+        },
+        "examDate": {
+          "type": "string",
+          "maxLength": 32,
+          "description": "Shift examination date."
+        },
+        "paperCode": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Official paper code (TGT-CS-41/26)."
+        },
+        "versionNumber": {
+          "type": "number",
+          "description": "Version number of the answer key."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "building",
+            "pending_verification",
+            "verified",
+            "published",
+            "conflict",
+            "superseded"
+          ],
+          "maxLength": 32,
+          "description": "Lifecycle status of the shift answer key."
+        },
+        "totalQuestions": {
+          "type": "number",
+          "description": "Total questions in paper (200)."
+        },
+        "compactAnswers": {
+          "type": "string",
+          "maxLength": 4096,
+          "description": "Compact pipe-delimited string of question_id:correct_option pairs."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp."
+        }
+      },
+      "required": [
+        "shiftKeyId",
+        "shiftNumber",
+        "examDate",
+        "paperCode",
+        "versionNumber",
+        "status",
+        "totalQuestions",
+        "compactAnswers",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PublicSubmission": {
+      "title": "PublicSubmission",
+      "description": "Category-free, non-PII public leaderboard entry (1 document write per candidate submission).",
+      "type": "object",
+      "properties": {
+        "submissionId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Deterministic candidate hash ID."
+        },
+        "studentName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Candidate display name."
+        },
+        "shiftNumber": {
+          "type": "number",
+          "description": "Shift number (1-18)."
+        },
+        "examDate": {
+          "type": "string",
+          "maxLength": 32,
+          "description": "Exam date string."
+        },
+        "score": {
+          "type": "number",
+          "description": "Raw score out of 200."
+        },
+        "sectionAScore": {
+          "type": "number",
+          "description": "Part A score out of 100."
+        },
+        "sectionBScore": {
+          "type": "number",
+          "description": "Part B score out of 100."
+        },
+        "accuracy": {
+          "type": "number",
+          "description": "Accuracy percentage (0-100)."
+        },
+        "correct": {
+          "type": "number",
+          "description": "Correct count."
+        },
+        "incorrect": {
+          "type": "number",
+          "description": "Incorrect count."
+        },
+        "unattempted": {
+          "type": "number",
+          "description": "Unattempted count."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "submissionId",
+        "studentName",
+        "shiftNumber",
+        "examDate",
+        "score",
+        "sectionAScore",
+        "sectionBScore",
+        "accuracy",
+        "correct",
+        "incorrect",
+        "unattempted",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PrivateSubmissionDossier": {
+      "title": "PrivateSubmissionDossier",
+      "description": "Isolated sensitive candidate metadata (Category, Sub-Category, Roll Number, Application Number, Test Center) restricted strictly to Admins.",
+      "type": "object",
+      "properties": {
+        "submissionId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Matches PublicSubmission ID."
+        },
+        "studentName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Candidate full name from response sheet."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["General", "OBC", "EWS", "SC", "ST", "Other"],
+          "maxLength": 24,
+          "description": "Candidate reservation category extracted from sheet."
+        },
+        "subCategory": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Sub-category extracted from sheet."
+        },
+        "rollNumber": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Candidate Roll / Participant ID."
+        },
+        "applicationNumber": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Candidate Application Number."
+        },
+        "gender": {
+          "type": "string",
+          "maxLength": 32,
+          "description": "Candidate gender."
+        },
+        "testCenterCode": {
+          "type": "string",
+          "maxLength": 32,
+          "description": "Test center code."
+        },
+        "testCenterName": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Test center full name."
+        },
+        "shiftNumber": {
+          "type": "number",
+          "description": "Exam shift number."
+        },
+        "score": {
+          "type": "number",
+          "description": "Raw score."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "submissionId",
+        "studentName",
+        "category",
+        "subCategory",
+        "rollNumber",
+        "applicationNumber",
+        "gender",
+        "testCenterCode",
+        "testCenterName",
+        "shiftNumber",
+        "score",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Trusted administrator registry document.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Admin Firebase Auth UID."
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Verified administrator email."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp."
+        }
+      },
+      "required": ["uid", "email", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/system_bundles/{bundleId}": {
+      "schema": { "$ref": "#/entities/SystemBundle" },
+      "description": "Single-document read-optimized live digest for 10k+ daily views."
+    },
+    "/shift_keys/{shiftKeyId}": {
+      "schema": { "$ref": "#/entities/ShiftKey" },
+      "description": "Single-document compact 200-question answer key per shift."
+    },
+    "/submissions_public/{submissionId}": {
+      "schema": { "$ref": "#/entities/PublicSubmission" },
+      "description": "Public category-free candidate scores."
+    },
+    "/submissions_private/{submissionId}": {
+      "schema": { "$ref": "#/entities/PrivateSubmissionDossier" },
+      "description": "Admin-only private candidate category and roll number dossier."
+    },
+    "/admins/{adminUid}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Trusted administrator lookup collection."
+    }
+  }
+}

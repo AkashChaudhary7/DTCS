@@ -17,6 +17,7 @@
     "cf:deploy": "vite build && wrangler deploy"
   },
   "dependencies": {
+    "@firebase/eslint-plugin-security-rules": "^0.0.2",
     "@google/genai": "^2.4.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/better-sqlite3": "^9.6.0",
@@ -25,7 +26,9 @@
     "better-sqlite3": "^13.0.3",
     "d3": "^7.9.2",
     "dotenv": "^17.2.3",
+    "eslint": "^10.14.0",
     "express": "^4.21.2",
+    "firebase": "^13.2.0",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "react": "^19.0.1",
@@ -35,6 +38,7 @@
     "vitest": "^5.1.0"
   },
   "devDependencies": {
+    "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
@@ -43,6 +47,6 @@
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
     "typescript": "^7.0.2",
-    "@types/express": "^4.17.21"
+    "vite-plugin-pwa": "^2.0.0"
   }
 }

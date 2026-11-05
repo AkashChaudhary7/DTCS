@@ -1,0 +1,336 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 1: Global Safety Net (Default-Deny Catch-All)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened Global Helpers
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'ictlabgsssaidana@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Validation Blueprints (Pillar 2: Anti-Update-Gap)
+    function isValidSystemBundle(data) {
+      return data.keys().hasAll([
+        'bundleId',
+        'examCode',
+        'totalSubmissions',
+        'averageScore',
+        'highestScore',
+        'discoveredKeysCount',
+        'createdAt',
+        'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'bundleId',
+        'examCode',
+        'totalSubmissions',
+        'averageScore',
+        'highestScore',
+        'discoveredKeysCount',
+        'createdAt',
+        'updatedAt'
+      ]) &&
+      data.bundleId is string && data.bundleId.size() >= 1 && data.bundleId.size() <= 64 && data.bundleId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.examCode is string && data.examCode.size() >= 1 && data.examCode.size() <= 64 &&
+      data.totalSubmissions is number && data.totalSubmissions >= 0 &&
+      data.averageScore is number && data.averageScore >= -50 && data.averageScore <= 200 &&
+      data.highestScore is number && data.highestScore >= -50 && data.highestScore <= 200 &&
+      data.discoveredKeysCount is number && data.discoveredKeysCount >= 0 && data.discoveredKeysCount <= 18 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidShiftKey(data) {
+      return data.keys().hasAll([
+        'shiftKeyId',
+        'shiftNumber',
+        'examDate',
+        'paperCode',
+        'versionNumber',
+        'status',
+        'totalQuestions',
+        'compactAnswers',
+        'createdAt',
+        'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'shiftKeyId',
+        'shiftNumber',
+        'examDate',
+        'paperCode',
+        'versionNumber',
+        'status',
+        'totalQuestions',
+        'compactAnswers',
+        'createdAt',
+        'updatedAt'
+      ]) &&
+      data.shiftKeyId is string && data.shiftKeyId.size() >= 1 && data.shiftKeyId.size() <= 64 && data.shiftKeyId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.shiftNumber is number && data.shiftNumber >= 1 && data.shiftNumber <= 18 &&
+      data.examDate is string && data.examDate.size() >= 1 && data.examDate.size() <= 32 &&
+      data.paperCode is string && data.paperCode.size() >= 1 && data.paperCode.size() <= 64 &&
+      data.versionNumber is number && data.versionNumber >= 1 &&
+      data.status is string && data.status.size() <= 32 &&
+      data.status in ['building', 'pending_verification', 'verified', 'published', 'conflict', 'superseded'] &&
+      data.totalQuestions is number && data.totalQuestions == 200 &&
+      data.compactAnswers is string && data.compactAnswers.size() >= 1 && data.compactAnswers.size() <= 4096 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidPublicSubmission(data) {
+      return data.keys().hasAll([
+        'submissionId',
+        'studentName',
+        'shiftNumber',
+        'examDate',
+        'score',
+        'sectionAScore',
+        'sectionBScore',
+        'accuracy',
+        'correct',
+        'incorrect',
+        'unattempted',
+        'createdAt',
+        'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'submissionId',
+        'studentName',
+        'shiftNumber',
+        'examDate',
+        'score',
+        'sectionAScore',
+        'sectionBScore',
+        'accuracy',
+        'correct',
+        'incorrect',
+        'unattempted',
+        'createdAt',
+        'updatedAt'
+      ]) &&
+      data.submissionId is string && data.submissionId.size() >= 1 && data.submissionId.size() <= 128 && data.submissionId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 120 &&
+      data.shiftNumber is number && data.shiftNumber >= 1 && data.shiftNumber <= 18 &&
+      data.examDate is string && data.examDate.size() >= 1 && data.examDate.size() <= 32 &&
+      data.score is number && data.score >= -50 && data.score <= 200 &&
+      data.sectionAScore is number && data.sectionAScore >= -25 && data.sectionAScore <= 100 &&
+      data.sectionBScore is number && data.sectionBScore >= -25 && data.sectionBScore <= 100 &&
+      data.accuracy is number && data.accuracy >= 0 && data.accuracy <= 100 &&
+      data.correct is number && data.correct >= 0 && data.correct <= 200 &&
+      data.incorrect is number && data.incorrect >= 0 && data.incorrect <= 200 &&
+      data.unattempted is number && data.unattempted >= 0 && data.unattempted <= 200 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidPrivateSubmission(data) {
+      return data.keys().hasAll([
+        'submissionId',
+        'studentName',
+        'category',
+        'subCategory',
+        'rollNumber',
+        'applicationNumber',
+        'gender',
+        'testCenterCode',
+        'testCenterName',
+        'shiftNumber',
+        'score',
+        'createdAt',
+        'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'submissionId',
+        'studentName',
+        'category',
+        'subCategory',
+        'rollNumber',
+        'applicationNumber',
+        'gender',
+        'testCenterCode',
+        'testCenterName',
+        'shiftNumber',
+        'score',
+        'createdAt',
+        'updatedAt'
+      ]) &&
+      data.submissionId is string && data.submissionId.size() >= 1 && data.submissionId.size() <= 128 && data.submissionId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 120 &&
+      data.category is string && data.category.size() <= 24 &&
+      data.category in ['General', 'OBC', 'EWS', 'SC', 'ST', 'Other'] &&
+      data.subCategory is string && data.subCategory.size() <= 64 &&
+      data.rollNumber is string && data.rollNumber.size() >= 1 && data.rollNumber.size() <= 64 &&
+      data.applicationNumber is string && data.applicationNumber.size() >= 1 && data.applicationNumber.size() <= 64 &&
+      data.gender is string && data.gender.size() <= 32 &&
+      data.testCenterCode is string && data.testCenterCode.size() <= 32 &&
+      data.testCenterName is string && data.testCenterName.size() <= 200 &&
+      data.shiftNumber is number && data.shiftNumber >= 1 && data.shiftNumber <= 18 &&
+      data.score is number && data.score >= -50 && data.score <= 200 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidAdminUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'createdAt']) &&
+      data.keys().hasOnly(['uid', 'email', 'createdAt']) &&
+      data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.email is string && data.email.size() >= 3 && data.email.size() <= 160 &&
+      data.createdAt is timestamp;
+    }
+
+    // Collection 1: /system_bundles/{bundleId}
+    match /system_bundles/{bundleId} {
+      allow get: if isValidId(bundleId) && existing().totalSubmissions >= 0;
+      allow list: if existing().totalSubmissions >= 0;
+      allow create: if isValidId(bundleId) &&
+        isValidSystemBundle(incoming()) &&
+        incoming().bundleId == bundleId &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        isAdmin();
+      allow update: if isValidId(bundleId) &&
+        isValidSystemBundle(incoming()) &&
+        incoming().bundleId == existing().bundleId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'examCode',
+          'totalSubmissions',
+          'averageScore',
+          'highestScore',
+          'discoveredKeysCount',
+          'updatedAt'
+        ]) &&
+        isAdmin();
+      allow delete: if isValidId(bundleId) && isAdmin();
+    }
+
+    // Collection 2: /shift_keys/{shiftKeyId}
+    match /shift_keys/{shiftKeyId} {
+      allow get: if isValidId(shiftKeyId) && existing().totalQuestions == 200;
+      allow list: if existing().totalQuestions == 200;
+      allow create: if isValidId(shiftKeyId) &&
+        isValidShiftKey(incoming()) &&
+        incoming().shiftKeyId == shiftKeyId &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        isAdmin();
+      allow update: if isValidId(shiftKeyId) &&
+        isValidShiftKey(incoming()) &&
+        incoming().shiftKeyId == existing().shiftKeyId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (existing().status != 'superseded' || isAdmin()) &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'versionNumber',
+          'status',
+          'compactAnswers',
+          'updatedAt'
+        ]) &&
+        isAdmin();
+      allow delete: if isValidId(shiftKeyId) && isAdmin();
+    }
+
+    // Collection 3: /submissions_public/{submissionId}
+    match /submissions_public/{submissionId} {
+      allow get: if isValidId(submissionId) && existing().score >= -50;
+      allow list: if existing().score >= -50;
+      allow create: if isValidId(submissionId) &&
+        isValidPublicSubmission(incoming()) &&
+        incoming().submissionId == submissionId &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        isAdmin();
+      allow update: if isValidId(submissionId) &&
+        isValidPublicSubmission(incoming()) &&
+        incoming().submissionId == existing().submissionId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'studentName',
+          'score',
+          'sectionAScore',
+          'sectionBScore',
+          'accuracy',
+          'correct',
+          'incorrect',
+          'unattempted',
+          'updatedAt'
+        ]) &&
+        isAdmin();
+      allow delete: if isValidId(submissionId) && isAdmin();
+    }
+
+    // Collection 4: /submissions_private/{submissionId} (Strict Admin-Only PII & Category Dossier)
+    match /submissions_private/{submissionId} {
+      allow get: if isValidId(submissionId) && isAdmin();
+      allow list: if isAdmin() && existing().score >= -50;
+      allow create: if isValidId(submissionId) &&
+        isValidPrivateSubmission(incoming()) &&
+        incoming().submissionId == submissionId &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        isAdmin();
+      allow update: if isValidId(submissionId) &&
+        isValidPrivateSubmission(incoming()) &&
+        incoming().submissionId == existing().submissionId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'studentName',
+          'category',
+          'subCategory',
+          'score',
+          'updatedAt'
+        ]) &&
+        isAdmin();
+      allow delete: if isValidId(submissionId) && isAdmin();
+    }
+
+    // Collection 5: /admins/{adminUid}
+    match /admins/{adminUid} {
+      allow get: if isValidId(adminUid) && isAdmin();
+      allow list: if isAdmin() && existing().email.size() >= 3;
+      allow create: if isValidId(adminUid) &&
+        isValidAdminUser(incoming()) &&
+        incoming().uid == adminUid &&
+        incoming().createdAt == request.time &&
+        isAdmin();
+      allow update: if isValidId(adminUid) &&
+        isValidAdminUser(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['email']) &&
+        isAdmin();
+      allow delete: if isValidId(adminUid) && isAdmin();
+    }
+  }
+}

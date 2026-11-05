@@ -10,7 +10,9 @@ import { AdminView } from './components/AdminView';
 import { CutoffView } from './components/CutoffView';
 import { HomeView } from './components/HomeView';
 import { LeaderboardView } from './components/LeaderboardView';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { PredictorView } from './components/PredictorView';
+import { PWAInstallButton } from './components/PWAInstallButton';
 import { ResultView } from './components/ResultView';
 import {
   ExamConfig,
@@ -67,13 +69,38 @@ export default function App() {
         setStats(sData);
         setExam(sData.exam || null);
         setShifts(sData.shifts_summary || []);
+        try {
+          localStorage.setItem('dsssb_offline_stats_v1', JSON.stringify(sData));
+        } catch {
+          // ignore storage quota errors
+        }
       }
       if (lbResp.ok) {
         const lbData = await lbResp.json();
         setTopLeaderboard(lbData.entries || []);
+        try {
+          localStorage.setItem('dsssb_offline_top_lb_v1', JSON.stringify(lbData.entries || []));
+        } catch {
+          // ignore storage quota errors
+        }
       }
     } catch {
-      // ignore initial network hiccup
+      // Offline fallback: restore cached core stats & top leaderboard from localStorage snapshot
+      try {
+        const cachedStatsRaw = localStorage.getItem('dsssb_offline_stats_v1');
+        if (cachedStatsRaw) {
+          const sData = JSON.parse(cachedStatsRaw);
+          setStats(sData);
+          setExam(sData.exam || null);
+          setShifts(sData.shifts_summary || []);
+        }
+        const cachedLbRaw = localStorage.getItem('dsssb_offline_top_lb_v1');
+        if (cachedLbRaw) {
+          setTopLeaderboard(JSON.parse(cachedLbRaw));
+        }
+      } catch {
+        // ignore parse errors
+      }
     }
   }, []);
 
@@ -317,7 +344,8 @@ export default function App() {
             <span>Official Draft Key: 8 December 2026</span>
           </div>
 
-          <div className="flex items-center gap-5">
+          <div className="flex flex-wrap items-center gap-4">
+            <PWAInstallButton />
             <button
               type="button"
               onClick={() => handleNavigate('about')}
@@ -352,6 +380,8 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      <OfflineIndicator />
     </div>
   );
 }
