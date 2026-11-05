@@ -35,8 +35,6 @@ export default function App() {
     number | undefined
   >(undefined);
   const [leaderboardFilterShift, setLeaderboardFilterShift] = useState<number>(0);
-  const [leaderboardFilterCategory, setLeaderboardFilterCategory] =
-    useState<string>('All');
 
   // Result display state
   const [activeResult, setActiveResult] = useState<StudentSubmissionDetail | null>(
@@ -104,7 +102,6 @@ export default function App() {
     options?: {
       shiftPaperId?: number;
       shiftNumber?: number;
-      category?: string;
       resultId?: number;
     }
   ) => {
@@ -117,13 +114,8 @@ export default function App() {
     }
     if (options?.shiftNumber !== undefined) {
       setLeaderboardFilterShift(options.shiftNumber);
-    } else if (tab === 'leaderboard' && !options?.category) {
+    } else if (tab === 'leaderboard') {
       setLeaderboardFilterShift(0);
-    }
-    if (options?.category) {
-      setLeaderboardFilterCategory(options.category);
-    } else if (tab === 'leaderboard' && !options?.shiftNumber) {
-      setLeaderboardFilterCategory('All');
     }
     if (tab === 'predictor' && !options?.resultId) {
       setActiveResult(null);
@@ -283,7 +275,6 @@ export default function App() {
               onViewLeaderboard={(opts) =>
                 handleNavigate('leaderboard', {
                   shiftNumber: opts?.shiftNumber,
-                  category: opts?.category,
                 })
               }
             />
@@ -304,7 +295,6 @@ export default function App() {
         {activeTab === 'leaderboard' && (
           <LeaderboardView
             shifts={shifts}
-            initialCategory={leaderboardFilterCategory}
             initialShiftNumber={leaderboardFilterShift}
             refreshSeconds={exam?.leaderboard_refresh_seconds || 20}
             onSelectCandidateResult={(subId) => handleLoadResultById(subId)}

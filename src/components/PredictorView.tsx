@@ -73,9 +73,8 @@ export const PredictorView: React.FC<PredictorViewProps> = ({
   );
   const [isExtracting, setIsExtracting] = useState(false);
 
-  // Fallback manual fields ONLY used if a custom sheet lacks Name or Category
+  // Fallback manual field ONLY used if a custom sheet lacks Name
   const [fallbackName, setFallbackName] = useState('');
-  const [fallbackCategory, setFallbackCategory] = useState<CategoryType>('General');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -202,7 +201,7 @@ export const PredictorView: React.FC<PredictorViewProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           student_name: extractedPreview?.candidate_name || fallbackName.trim() || undefined,
-          category: extractedPreview?.category || fallbackCategory,
+          category: extractedPreview?.category || 'General',
           shift_paper_id: extractedPreview?.shift_paper_id,
           response_url: inputMode === 'url' ? responseUrl.trim() : undefined,
           uploaded_content: inputMode === 'upload' ? uploadedContent : undefined,
@@ -317,7 +316,7 @@ export const PredictorView: React.FC<PredictorViewProps> = ({
 
               <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
                 <Lock className="w-3 h-3" />
-                <span>Name, Category & Shift auto-locked from URL</span>
+                <span>Name & Shift auto-locked from URL</span>
               </span>
             </div>
 
@@ -385,7 +384,7 @@ export const PredictorView: React.FC<PredictorViewProps> = ({
             )}
           </div>
 
-          {/* Locked Auto-Extracted Candidate Dossier Card */}
+          {/* Locked Auto-Extracted Candidate Dossier Card (Category hidden on public UI) */}
           {extractedPreview && (
             <div className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800 pb-2.5">
@@ -419,9 +418,9 @@ export const PredictorView: React.FC<PredictorViewProps> = ({
                   </div>
                 </div>
                 <div>
-                  <div className="text-slate-400">Category · Sub-Category</div>
-                  <div className="font-bold text-blue-700 dark:text-blue-400 mt-0.5">
-                    {extractedPreview.category || 'General'} · {extractedPreview.sub_category}
+                  <div className="text-slate-400">Test Center Code</div>
+                  <div className="font-mono tabular-nums font-bold text-blue-700 dark:text-blue-400 mt-0.5">
+                    {extractedPreview.test_center_code}
                   </div>
                 </div>
                 <div>
@@ -438,55 +437,31 @@ export const PredictorView: React.FC<PredictorViewProps> = ({
                 </div>
                 <div className="col-span-2 sm:col-span-3 pt-1 border-t border-slate-200/60 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
                   <span>
-                    Center: <strong className="text-slate-700 dark:text-slate-300">{extractedPreview.test_center_name} ({extractedPreview.test_center_code})</strong>
+                    Center: <strong className="text-slate-700 dark:text-slate-300">{extractedPreview.test_center_name}</strong>
                   </span>
                   <span>
-                    Gender: <strong className="text-slate-700 dark:text-slate-300">{extractedPreview.gender}</strong> · {extractedPreview.subject_name}
+                    Subject: <strong className="text-slate-700 dark:text-slate-300">{extractedPreview.subject_name}</strong>
                   </span>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Fallback manual fields ONLY if a custom uploaded sheet is missing Name or Category */}
-          {extractedPreview &&
-            (!extractedPreview.candidate_name || !extractedPreview.category) && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-xl">
-                {!extractedPreview.candidate_name && (
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Candidate Name (Missing in sheet)
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={fallbackName}
-                      onChange={(e) => setFallbackName(e.target.value)}
-                      className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
-                    />
-                  </div>
-                )}
-                {!extractedPreview.category && (
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Category (Missing in sheet)
-                    </label>
-                    <select
-                      value={fallbackCategory}
-                      onChange={(e) => setFallbackCategory(e.target.value as CategoryType)}
-                      className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
-                    >
-                      <option value="General">General (UR)</option>
-                      <option value="OBC">OBC</option>
-                      <option value="EWS">EWS</option>
-                      <option value="SC">SC</option>
-                      <option value="ST">ST</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-            )}
+          {/* Fallback manual Name field ONLY if a custom uploaded sheet is missing Name */}
+          {extractedPreview && !extractedPreview.candidate_name && (
+            <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-xl">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Candidate Name (Missing in sheet)
+              </label>
+              <input
+                type="text"
+                required
+                value={fallbackName}
+                onChange={(e) => setFallbackName(e.target.value)}
+                className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg"
+              />
+            </div>
+          )}
 
           {/* Error Notice */}
           {errorMessage && (

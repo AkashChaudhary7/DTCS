@@ -76,7 +76,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
             <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-xl">
               Evaluate your official DSSSB response sheet, auto-discover shift answer keys,
-              and compare your live dense rank across all categories.
+              and compare your live dense rank across all 18 shifts.
             </p>
 
             <div className="flex flex-wrap items-center gap-3 pt-1">
@@ -213,7 +213,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
       {/* Functional 2-Column Workspace: Top 5 Standings + Compact 18-Shift Grid */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Top 5 Live Leaderboard Preview */}
+        {/* Top 5 Live Leaderboard Preview (Strictly Rank, Name, and Raw Score) */}
         <div className="lg:col-span-6 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800 pb-3.5">
             <h2 className="text-base font-bold text-slate-950 dark:text-white">
@@ -242,19 +242,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                       {entry.student_name}
                     </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      <span>{entry.category}</span>
-                      <span className="mx-1.5" aria-hidden="true">
-                        ·
-                      </span>
-                      <span>Shift {entry.shift_number}</span>
-                      <span className="mx-1.5" aria-hidden="true">
-                        ·
-                      </span>
-                      <span className="font-mono tabular-nums">
-                        {Number(entry.accuracy).toFixed(1)}% acc
-                      </span>
-                    </div>
                   </div>
                 </div>
 
@@ -262,7 +249,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   <div className="text-base font-bold font-mono tabular-nums text-blue-700 dark:text-blue-400">
                     {Number(entry.score).toFixed(2)}
                   </div>
-                  <div className="text-[11px] text-slate-400">/ 200</div>
                 </div>
               </div>
             ))}
