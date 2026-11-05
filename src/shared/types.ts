@@ -151,6 +151,17 @@ export interface ScoreCalculationResult {
   }>;
 }
 
+export interface RankTrendPoint {
+  step_label: string;
+  event_type: 'initial_eval' | 'cohort_growth' | 'key_revision' | 'current_live';
+  overall_rank: number;
+  shift_rank: number;
+  total_candidates: number;
+  score: number;
+  key_version: number;
+  timestamp_label: string;
+}
+
 export interface StudentSubmissionDetail {
   id: number;
   shift_paper_id: number;
@@ -209,6 +220,7 @@ export interface StudentSubmissionDetail {
     score: number;
     accuracy: number;
   }>;
+  rank_trend?: RankTrendPoint[];
 }
 
 export interface LeaderboardEntry {

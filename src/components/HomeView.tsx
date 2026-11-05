@@ -10,6 +10,7 @@ import {
   Users,
 } from 'lucide-react';
 import { ExamConfig, LeaderboardEntry, ShiftPaper } from '../shared/types';
+import { FaqSection } from './FaqSection';
 
 interface HomeViewProps {
   exam: ExamConfig | null;
@@ -329,6 +330,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </div>
         </div>
       </section>
+
+      {/* Minimal & Concise Candidate FAQs */}
+      <FaqSection />
     </div>
   );
 };

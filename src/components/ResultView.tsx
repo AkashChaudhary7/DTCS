@@ -26,6 +26,8 @@ import {
   YAxis,
 } from 'recharts';
 import { StudentSubmissionDetail } from '../shared/types';
+import { ProgressRing } from './ProgressRing';
+import { RankTrendChartD3 } from './RankTrendChartD3';
 
 interface ResultViewProps {
   result: StudentSubmissionDetail;
@@ -473,6 +475,31 @@ export const ResultView: React.FC<ResultViewProps> = ({
           </div>
         </div>
 
+        {/* Visual Progress-Ring Gauges: Accuracy & Leaderboard Population Percentiles */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+          <ProgressRing
+            value={result.accuracy}
+            label="Exam Accuracy"
+            displayValue={`${result.accuracy.toFixed(1)}%`}
+            sublabel={`${result.correct} Correct / ${result.correct + result.incorrect} Attempted`}
+            colorClass="text-emerald-600 dark:text-emerald-400"
+          />
+          <ProgressRing
+            value={result.overall_percentile}
+            label="Overall Percentile"
+            displayValue={`${result.overall_percentile.toFixed(1)}%ile`}
+            sublabel={`Rank #${result.overall_rank} of ${result.total_candidates} Candidates`}
+            colorClass="text-blue-600 dark:text-blue-400"
+          />
+          <ProgressRing
+            value={result.shift_percentile}
+            label={`Shift ${result.shift_number} Percentile`}
+            displayValue={`${result.shift_percentile.toFixed(1)}%ile`}
+            sublabel={`Rank #${result.shift_rank} of ${result.total_shift_candidates} in Shift`}
+            colorClass="text-indigo-600 dark:text-indigo-400"
+          />
+        </div>
+
         {/* Attempt Counters */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
           <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-slate-50/70 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800">
@@ -581,6 +608,9 @@ export const ResultView: React.FC<ResultViewProps> = ({
           </div>
         </div>
       </section>
+
+      {/* D3 Rank Trend & Key Revision Trajectory */}
+      <RankTrendChartD3 result={result} />
 
       {/* Smart Draft-Key Objection Radar (8 Dec 2026 Challenge Helper) */}
       {objections.length > 0 && (

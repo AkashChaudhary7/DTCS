@@ -1,4 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -6,6 +13,7 @@ import {
   RefreshCw,
   Search,
   Trophy,
+  X,
 } from 'lucide-react';
 import { LeaderboardEntry, ShiftPaper } from '../shared/types';
 
@@ -14,6 +22,10 @@ interface LeaderboardViewProps {
   initialShiftNumber?: number;
   refreshSeconds?: number;
   onSelectCandidateResult: (submissionId: number) => void;
+}
+
+interface IndexedLeaderboardEntry extends LeaderboardEntry {
+  _normalizedName: string;
 }
 
 export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
@@ -26,8 +38,11 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
     initialShiftNumber || 0
   );
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedServerQuery, setDebouncedServerQuery] = useState('');
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+
   const [page, setPage] = useState(1);
-  const [limit] = useState(25);
+  const [limit] = useState(50);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
@@ -35,59 +50,126 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   useEffect(() => {
     if (initialShiftNumber !== undefined) {
       setSelectedShiftNumber(initialShiftNumber);
     }
   }, [initialShiftNumber]);
 
+  // Keyboard shortcut '/' to focus search input quickly
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === '/' &&
+        document.activeElement?.tagName !== 'INPUT' &&
+        document.activeElement?.tagName !== 'TEXTAREA' &&
+        document.activeElement?.tagName !== 'SELECT'
+      ) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Debounce server-side query (180ms) while client-side filtering runs instantaneously
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedServerQuery(searchQuery.trim());
+    }, 180);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const fetchLeaderboard = useCallback(async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
       if (selectedShiftNumber > 0) {
         params.set('shiftNumber', String(selectedShiftNumber));
       }
-      if (searchQuery.trim()) {
-        params.set('search', searchQuery.trim());
+      if (debouncedServerQuery) {
+        params.set('search', debouncedServerQuery);
       }
       params.set('page', String(page));
       params.set('limit', String(limit));
 
-      const resp = await fetch(`/api/leaderboard?${params.toString()}`);
+      const resp = await fetch(`/api/leaderboard?${params.toString()}`, {
+        signal: controller.signal,
+      });
       if (resp.ok) {
         const data = await resp.json();
         setEntries(data.entries || []);
         setPodium(data.podium || []);
         setTotal(data.total || 0);
       }
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        // ignore transient network errors
+      }
     } finally {
-      setIsLoading(false);
+      if (abortControllerRef.current === controller) {
+        setIsLoading(false);
+      }
     }
-  }, [selectedShiftNumber, searchQuery, page, limit]);
+  }, [selectedShiftNumber, debouncedServerQuery, page, limit]);
 
   useEffect(() => {
     fetchLeaderboard();
+    return () => {
+      abortControllerRef.current?.abort();
+    };
   }, [fetchLeaderboard]);
 
   useEffect(() => {
     if (!autoRefresh) return;
-    const interval = setInterval(fetchLeaderboard, Math.max(15, refreshSeconds) * 1000);
+    const interval = setInterval(
+      fetchLeaderboard,
+      Math.max(15, refreshSeconds) * 1000
+    );
     return () => clearInterval(interval);
   }, [autoRefresh, refreshSeconds, fetchLeaderboard]);
+
+  // Pre-index lowercase names once per fetch so keystroke filtering is O(N) string check with zero allocations
+  const indexedEntries = useMemo<IndexedLeaderboardEntry[]>(() => {
+    return entries.map((entry) => ({
+      ...entry,
+      _normalizedName: entry.student_name.toLowerCase(),
+    }));
+  }, [entries]);
+
+  // Instant real-time client-side filtering on the deferred search query
+  const filteredEntries = useMemo(() => {
+    const q = deferredSearchQuery.trim().toLowerCase();
+    if (!q) return indexedEntries;
+    return indexedEntries.filter((item) => item._normalizedName.includes(q));
+  }, [indexedEntries, deferredSearchQuery]);
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Minimalist Header & Controls */}
+      {/* Minimalist Header & Real-Time Search Bar */}
       <section className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-6 space-y-4 shadow-2xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold text-blue-700 dark:text-blue-400">
               <span>Post Code 41/26</span>
               <span aria-hidden="true">·</span>
-              <span>{total} Candidates</span>
+              <span>
+                {deferredSearchQuery.trim()
+                  ? `${filteredEntries.length} Matching`
+                  : `${total} Candidates`}
+              </span>
             </div>
             <h1 className="text-2xl font-bold text-slate-950 dark:text-white mt-0.5">
               Live Leaderboard
@@ -95,18 +177,35 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className="relative flex-1 sm:w-56">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            {/* High-Efficiency Real-Time Student Name Search Bar */}
+            <div className="relative flex-1 sm:w-64">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
-                type="text"
-                placeholder="Search candidate name..."
+                ref={searchInputRef}
+                type="search"
+                aria-label="Search leaderboard by student name"
+                placeholder="Search student name... (Press /)"
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setPage(1);
                 }}
-                className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setPage(1);
+                    searchInputRef.current?.focus();
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
             <select
@@ -139,7 +238,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
       </section>
 
       {/* Minimalist Top 3 Podium (Only Rank, Name & Raw Score) */}
-      {podium.length > 0 && page === 1 && !searchQuery && (
+      {podium.length > 0 && page === 1 && !searchQuery.trim() && (
         <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {podium.map((p, idx) => (
             <div
@@ -186,7 +285,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200/70 dark:divide-slate-800 text-sm">
-              {entries.map((entry) => (
+              {filteredEntries.map((entry) => (
                 <tr
                   key={entry.id}
                   onClick={() => onSelectCandidateResult(entry.id)}
@@ -204,10 +303,10 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
                 </tr>
               ))}
 
-              {!isLoading && entries.length === 0 && (
+              {!isLoading && filteredEntries.length === 0 && (
                 <tr>
                   <td colSpan={3} className="py-12 text-center text-sm text-slate-500">
-                    No candidates match your search.
+                    No candidates match "{searchQuery}".
                   </td>
                 </tr>
               )}

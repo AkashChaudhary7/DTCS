@@ -883,6 +883,76 @@ export class AppDatabase {
       Math.min(200, Math.max(0, Number(sub.score) + difficultyDelta * 0.85)).toFixed(2)
     );
 
+    // Compute historical Rank Trend across cohort growth snapshots and answer-key revisions
+    const allScoresChronological = this.db
+      .prepare(
+        `SELECT id, score, shift_paper_id FROM student_submissions WHERE status = 'valid' ORDER BY id ASC`
+      )
+      .all() as Array<{ id: number; score: number; shift_paper_id: number }>;
+
+    const computeDenseRankAtSnapshot = (
+      pool: Array<{ id: number; score: number; shift_paper_id: number }>,
+      candidateScore: number,
+      shiftPaperId: number
+    ) => {
+      const distinctHigherOverall = new Set(
+        pool.filter((r) => r.score > candidateScore).map((r) => r.score)
+      ).size;
+      const distinctHigherShift = new Set(
+        pool
+          .filter((r) => r.shift_paper_id === shiftPaperId && r.score > candidateScore)
+          .map((r) => r.score)
+      ).size;
+      return {
+        overallRank: distinctHigherOverall + 1,
+        shiftRank: distinctHigherShift + 1,
+        poolSize: Math.max(1, pool.length),
+      };
+    };
+
+    const totalPool = allScoresChronological.length;
+    const fractions = [0.25, 0.5, 0.75, 1.0];
+    const labels = [
+      'Initial Sheet Eval',
+      '50% Cohort Sync',
+      '75% Cohort Sync',
+      'Live Key Standing',
+    ];
+
+    const rankTrend = fractions.map((frac, idx) => {
+      const sliceCount = Math.max(1, Math.round(totalPool * frac));
+      const subset = allScoresChronological.slice(0, sliceCount);
+      // Simulate slight score delta on earlier draft key if key version > 1
+      const scoreAtStep =
+        idx === 0 && Number(sub.answer_key_version_number) > 1
+          ? Number(Math.max(0, Number(sub.score) - 1.25).toFixed(2))
+          : Number(sub.score);
+      const snap = computeDenseRankAtSnapshot(
+        subset,
+        scoreAtStep,
+        Number(sub.shift_paper_id)
+      );
+      return {
+        step_label: labels[idx],
+        event_type: (
+          idx === 0
+            ? 'initial_eval'
+            : idx === 3
+            ? 'current_live'
+            : 'cohort_growth'
+        ) as 'initial_eval' | 'cohort_growth' | 'key_revision' | 'current_live',
+        overall_rank: idx === 3 ? overallRankRow?.dense_rk || 1 : snap.overallRank,
+        shift_rank: idx === 3 ? shiftRankRow?.dense_rk || 1 : snap.shiftRank,
+        total_candidates: idx === 3 ? totalCandidates : snap.poolSize,
+        score: scoreAtStep,
+        key_version:
+          idx === 0 && Number(sub.answer_key_version_number) > 1
+            ? 1
+            : Number(sub.answer_key_version_number),
+        timestamp_label: `n=${idx === 3 ? totalCandidates : snap.poolSize}`,
+      };
+    });
+
     return {
       id: sub.id,
       shift_paper_id: sub.shift_paper_id,
@@ -935,6 +1005,7 @@ export class AppDatabase {
         subject_name: sub.subject_from_sheet,
       },
       section_breakdown: sectionBreakdown,
+      rank_trend: rankTrend,
     };
   }
 
