@@ -16,6 +16,7 @@ import {
   ShiftPaper,
   StudentSubmissionDetail,
 } from '../shared/types';
+import { apiFetch } from '../services/serverlessEngine';
 
 interface PredictorViewProps {
   exam: ExamConfig | null;
@@ -99,7 +100,7 @@ export const PredictorView: React.FC<PredictorViewProps> = ({
     setSuggestUploadFallback(false);
 
     try {
-      const resp = await fetch('/api/response/extract-preview', {
+      const resp = await apiFetch('/api/response/extract-preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -130,7 +131,7 @@ export const PredictorView: React.FC<PredictorViewProps> = ({
 
     try {
       const randomRoll = `41261120${9500 + Math.floor(Math.random() * 489)}`;
-      const resp = await fetch(`/api/sample-fixture?shift=${sNum}&roll=${randomRoll}`);
+      const resp = await apiFetch(`/api/sample-fixture?shift=${sNum}&roll=${randomRoll}`);
       const data = await resp.json();
 
       if (inputMode === 'url') {
@@ -196,7 +197,7 @@ export const PredictorView: React.FC<PredictorViewProps> = ({
     }, 180);
 
     try {
-      const resp = await fetch('/api/response/submit', {
+      const resp = await apiFetch('/api/response/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

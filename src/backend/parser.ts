@@ -1,6 +1,29 @@
-import crypto from 'crypto';
 import { CategoryType, ParsedQuestionResponse, ParsedResponseSheet } from '../shared/types';
 import { isDroppedMarker, normalizeOption } from './scoringEngine';
+
+/**
+ * Pure TypeScript deterministic byte-array hash (32 bytes) so parser.ts works
+ * identically in Node.js, Cloudflare Workers, and Browser Serverless Fallback mode.
+ */
+function deterministicHashBytes(input: string): number[] {
+  const bytes = new Array<number>(32).fill(0);
+  let h1 = 0x811c9dc5;
+  let h2 = 0x01000193;
+  for (let i = 0; i < input.length; i++) {
+    const ch = input.charCodeAt(i);
+    h1 ^= ch;
+    h1 = Math.imul(h1, 0x01000193);
+    h2 ^= ch + i;
+    h2 = Math.imul(h2, 0x85ebca6b);
+    bytes[i % 32] = (bytes[i % 32] ^ (h1 >>> 0) ^ (h2 >>> 0) ^ (ch * 31)) & 0xff;
+  }
+  for (let j = 0; j < 32; j++) {
+    h1 = Math.imul(h1 ^ j, 0xc2b2ae35);
+    h2 = Math.imul(h2 ^ (j * 7), 0x27d4eb2f);
+    bytes[j] = (bytes[j] + ((h1 >>> (j % 24)) & 0xff) + ((h2 >>> ((j * 3) % 24)) & 0xff)) & 0xff;
+  }
+  return bytes;
+}
 
 const DEFAULT_ALLOWED_DOMAINS = [
   'cdn.digialm.com',
@@ -236,10 +259,7 @@ export function generateOfficialDigialmHtmlFixture(
   const shiftTiming = getShiftDefaultTiming(shiftNumber);
   const paperCode = options?.paperCode || 'TGT-CS-41/26';
 
-  const metaHash = crypto
-    .createHash('sha256')
-    .update(`META:${candidateRoll}:${shiftNumber}`)
-    .digest();
+  const metaHash = deterministicHashBytes(`META:${candidateRoll}:${shiftNumber}`);
 
   const candidateName =
     options?.candidateName ||
@@ -276,10 +296,7 @@ export function generateOfficialDigialmHtmlFixture(
         ? 'Section A: English Language & Comprehension'
         : 'Section B: Computer Science Domain';
 
-    const keyHash = crypto
-      .createHash('sha256')
-      .update(`OFFICIAL_KEY:${paperCode}:SHIFT_${shiftNumber}:Q_${i}`)
-      .digest();
+    const keyHash = deterministicHashBytes(`OFFICIAL_KEY:${paperCode}:SHIFT_${shiftNumber}:Q_${i}`);
 
     const isDropped = i === 95;
     let correctOption = String((keyHash[0] % 4) + 1);
@@ -290,15 +307,9 @@ export function generateOfficialDigialmHtmlFixture(
       correctOption = 'DROP';
     }
 
-    const candHash = crypto
-      .createHash('sha256')
-      .update(`CAND_RESP:${candidateRoll}:SHIFT_${shiftNumber}:Q_${i}`)
-      .digest();
+    const candHash = deterministicHashBytes(`CAND_RESP:${candidateRoll}:SHIFT_${shiftNumber}:Q_${i}`);
 
-    const skillHash = crypto
-      .createHash('sha256')
-      .update(`CAND_SKILL:${candidateRoll}`)
-      .digest();
+    const skillHash = deterministicHashBytes(`CAND_SKILL:${candidateRoll}`);
     const attemptThreshold = 155 + (skillHash[0] % 80);
     const correctThreshold = 135 + (skillHash[1] % 95);
 

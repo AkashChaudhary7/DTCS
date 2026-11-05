@@ -20,6 +20,7 @@ import {
   ShiftPaper,
   StudentSubmissionDetail,
 } from './shared/types';
+import { apiFetch } from './services/serverlessEngine';
 
 type ActiveTab = 'home' | 'predictor' | 'leaderboard' | 'cutoff' | 'admin' | 'about';
 
@@ -61,8 +62,8 @@ export default function App() {
   const loadCoreData = useCallback(async () => {
     try {
       const [statsResp, lbResp] = await Promise.all([
-        fetch('/api/stats'),
-        fetch('/api/leaderboard?limit=10'),
+        apiFetch('/api/stats'),
+        apiFetch('/api/leaderboard?limit=10'),
       ]);
       if (statsResp.ok) {
         const sData = await statsResp.json();
@@ -110,7 +111,7 @@ export default function App() {
 
   const handleLoadResultById = async (submissionId: number) => {
     try {
-      const resp = await fetch(`/api/result/${submissionId}`);
+      const resp = await apiFetch(`/api/result/${submissionId}`);
       if (resp.ok) {
         const detail = (await resp.json()) as StudentSubmissionDetail;
         setActiveResult(detail);

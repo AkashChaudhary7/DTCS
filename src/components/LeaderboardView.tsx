@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { LeaderboardEntry, ShiftPaper } from '../shared/types';
+import { apiFetch } from '../services/serverlessEngine';
 
 interface LeaderboardViewProps {
   shifts: ShiftPaper[];
@@ -103,7 +104,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
       params.set('page', String(page));
       params.set('limit', String(limit));
 
-      const resp = await fetch(`/api/leaderboard?${params.toString()}`, {
+      const resp = await apiFetch(`/api/leaderboard?${params.toString()}`, {
         signal: controller.signal,
       });
       if (resp.ok) {

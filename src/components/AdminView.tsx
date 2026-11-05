@@ -27,6 +27,7 @@ import {
   YAxis,
 } from 'recharts';
 import { AnswerKeyVersion, CategoryType, ShiftPaper } from '../shared/types';
+import { apiFetch } from '../services/serverlessEngine';
 import {
   firestoreQuotaMetrics,
   readLiveDigestFromFirestore,
@@ -106,13 +107,13 @@ export const AdminView: React.FC<AdminViewProps> = ({ onDataMutated }) => {
     if (!token) return;
     try {
       const [dashResp, keysResp, subsResp, setResp] = await Promise.all([
-        fetch('/api/admin/dashboard', { headers: authHeaders() }),
-        fetch('/api/admin/answer-keys', { headers: authHeaders() }),
-        fetch(
+        apiFetch('/api/admin/dashboard', { headers: authHeaders() }),
+        apiFetch('/api/admin/answer-keys', { headers: authHeaders() }),
+        apiFetch(
           `/api/admin/submissions?category=${encodeURIComponent(selectedAdminCategory)}&search=${encodeURIComponent(subSearch)}&shift_paper_id=${subShiftFilter || ''}`,
           { headers: authHeaders() }
         ),
-        fetch('/api/admin/settings', { headers: authHeaders() }),
+        apiFetch('/api/admin/settings', { headers: authHeaders() }),
       ]);
 
       if (dashResp.status === 401) {
@@ -186,7 +187,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onDataMutated }) => {
     e.preventDefault();
     setLoginError(null);
     try {
-      const resp = await fetch('/api/admin/login', {
+      const resp = await apiFetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -265,7 +266,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onDataMutated }) => {
 
   const handleInspectVersion = async (ver: AnswerKeyVersion) => {
     setInspectingVersion(ver);
-    const resp = await fetch(`/api/admin/answer-keys/${ver.id}/items`, {
+    const resp = await apiFetch(`/api/admin/answer-keys/${ver.id}/items`, {
       headers: authHeaders(),
     });
     if (resp.ok) {
@@ -282,7 +283,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onDataMutated }) => {
     action: 'verify' | 'publish'
   ) => {
     setStatusBanner(null);
-    const resp = await fetch(`/api/admin/answer-keys/${action}`, {
+    const resp = await apiFetch(`/api/admin/answer-keys/${action}`, {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({
@@ -308,7 +309,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onDataMutated }) => {
     if (!inspectingVersion || !revisionQuestionId) return;
     setStatusBanner(null);
 
-    const resp = await fetch('/api/admin/answer-keys/revise', {
+    const resp = await apiFetch('/api/admin/answer-keys/revise', {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({
@@ -366,7 +367,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onDataMutated }) => {
       return;
     }
 
-    const resp = await fetch('/api/admin/answer-keys/upload', {
+    const resp = await apiFetch('/api/admin/answer-keys/upload', {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({
@@ -394,7 +395,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onDataMutated }) => {
     id: number,
     status: 'valid' | 'flagged' | 'hidden'
   ) => {
-    await fetch(`/api/admin/submissions/${id}/status`, {
+    await apiFetch(`/api/admin/submissions/${id}/status`, {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({ status }),
@@ -404,7 +405,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onDataMutated }) => {
   };
 
   const handleDeleteSubmission = async (id: number) => {
-    await fetch(`/api/admin/submissions/${id}`, {
+    await apiFetch(`/api/admin/submissions/${id}`, {
       method: 'DELETE',
       headers: authHeaders(),
     });
@@ -414,7 +415,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onDataMutated }) => {
 
   const handleRecalculateAll = async (shiftPaperId?: number) => {
     setStatusBanner(null);
-    const resp = await fetch('/api/admin/submissions/recalculate', {
+    const resp = await apiFetch('/api/admin/submissions/recalculate', {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({ shift_paper_id: shiftPaperId }),
@@ -434,7 +435,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onDataMutated }) => {
     e.preventDefault();
     if (!settingsForm) return;
     setStatusBanner(null);
-    const resp = await fetch('/api/admin/settings', {
+    const resp = await apiFetch('/api/admin/settings', {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({
@@ -458,7 +459,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onDataMutated }) => {
 
   const handleResetDatabase = async (reseedSampleData: boolean) => {
     setStatusBanner(null);
-    const resp = await fetch('/api/admin/leaderboard/reset', {
+    const resp = await apiFetch('/api/admin/leaderboard/reset', {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({

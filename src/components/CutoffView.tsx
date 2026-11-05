@@ -12,6 +12,7 @@ import {
   YAxis,
 } from 'recharts';
 import { CategoryCutoffEstimate } from '../shared/types';
+import { apiFetch } from '../services/serverlessEngine';
 
 export const CutoffView: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<'cutoffs' | 'normalization'>(
@@ -25,7 +26,7 @@ export const CutoffView: React.FC = () => {
   useEffect(() => {
     const loadCutoff = async () => {
       try {
-        const resp = await fetch('/api/cutoff');
+        const resp = await apiFetch('/api/cutoff');
         if (resp.ok) {
           const data = await resp.json();
           setCategories(data.categories || []);

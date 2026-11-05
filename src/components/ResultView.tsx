@@ -26,6 +26,7 @@ import {
   YAxis,
 } from 'recharts';
 import { StudentSubmissionDetail } from '../shared/types';
+import { apiFetch } from '../services/serverlessEngine';
 import { ProgressRing } from './ProgressRing';
 import { RankTrendChartD3 } from './RankTrendChartD3';
 
@@ -50,7 +51,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
-    fetch(`/api/objections?shiftNumber=${result.shift_number}`)
+    apiFetch(`/api/objections?shiftNumber=${result.shift_number}`)
       .then((r) => r.json())
       .then((d) => setObjections(d.items || []))
       .catch(() => {});
