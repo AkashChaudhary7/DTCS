@@ -1,0 +1,6 @@
+{
+  "name": "DSSSB TGT CS Rank Predictor & Live Leaderboard",
+  "description": "Production-grade rank predictor, smart shift-wise answer key discovery engine, live leaderboard, and category cutoff estimator for DSSSB TGT Computer Science examinations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

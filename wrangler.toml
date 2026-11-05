@@ -1,0 +1,19 @@
+name = "dsssb-tgt-cs-rank-predictor"
+main = "src/worker.ts"
+compatibility_date = "2025-02-01"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dsssb-tgt-cs-db"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[vars]
+ALLOWED_DSSSB_DOMAINS = "cdn.digialm.com,digialm.com,dsssb.delhi.gov.in,dsssbonline.nic.in"
+LEADERBOARD_CACHE_TTL_SECONDS = "20"
